@@ -1,0 +1,90 @@
+#:kivy 1.0.9
+#-*- coding: utf-8 -*-
+
+
+<Widget>:
+    font_name: '/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf'
+
+
+<CustomerScreen>:
+    BoxLayout:
+        orientation: 'horizontal'
+        BoxLayout:
+            orientation: 'vertical'
+            Button:
+                text: '支払う'
+                on_press: root.manager.current = 'calculator'
+            Button:
+                text: 'チャージする'
+                on_press: root.manager.current = 'calculator'
+        Button:
+            text: '店舗用ページへ'
+            on_press: root.manager.current = 'store'
+
+
+<StoreScreen>:
+    BoxLayout:
+        Button:
+            text: '売上の確認'
+        Button:
+            text: '販売者ページへ'
+            on_press: root.manager.current = 'customer'
+
+
+<CalculatorScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        display: display_input
+
+        Label:
+            text: '金額を入力してください'
+        TextInput:
+            id: display_input
+            hint_text: '0'
+        BoxLayout:
+            orientation: 'horizontal'
+            Button:
+                text: '前のページへ戻る'
+                on_press: root.manager.current = 'customer'
+            NumKey:
+
+
+<NumKey@GridLayout>:
+    cols: 3
+    rows: 4
+
+    NumberButton:
+        text: '7'
+    NumberButton:
+        text: '8'
+    NumberButton:
+        text: '9'
+
+    NumberButton:
+        text: '4'
+    NumberButton:
+        text: '5'
+    NumberButton:
+        text: '6'
+
+    NumberButton:
+        text: '1'
+    NumberButton:
+        text: '2'
+    NumberButton:
+        text: '3'
+
+    ClearButton:
+        text: 'C'
+    NumberButton:
+        text: '0'
+    Button:
+        text: 'Enter'
+
+
+<NumberButton@Button>:
+    # on_press: app.root.ids['CalculatorScreen'].print_number(self.text)
+
+
+<ClearButton@Button>:
+    # on_press: app.root.ids['CalculatorScreen'].clear_display()
