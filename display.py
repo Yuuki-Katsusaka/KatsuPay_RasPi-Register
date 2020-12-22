@@ -1,6 +1,7 @@
 import time
 from threading import Thread
 import json
+import qrcode
 
 from kivy.app import App
 from kivy.lang import Builder
@@ -26,6 +27,27 @@ class DatabaseInfo():
 class WindowManager(ScreenManager):
     pass
 
+class LoginWindow(Screen):
+    def checkID(self):
+        self.usrID = self.ids['login_id'].text
+        self.usrPass = self.ids['login_pass'].text
+
+        if((self.usrID == '123') and (self.usrPass == 'password')):
+            self.manager.current = 'customer'
+        else:
+            self.openErrorPop(ErrorInfo.E3)
+
+    def openErrorPop(self, error):
+        content = ErrorPop(closePopup=self.closePopup)
+        self.popup = Popup(title='Error', content=content, size_hint=(0.5, 0.5), auto_dismiss=False)
+        self.popup.open()
+
+    def closePopup(self):
+        self.popup.dismiss()
+        self.manager.current = 'customer'
+        
+    pass
+
 class CustomerWindow(Screen):
     def press_PaymentButton(self):
         PayInfo.set_payType(PayType.PAYMENT)
@@ -34,7 +56,7 @@ class CustomerWindow(Screen):
     def press_ChargeButton(self):
         PayInfo.set_payType(PayType.CHARGE)
         pass
-    
+
     pass
 
 class StoreWindow(Screen):
@@ -158,11 +180,27 @@ class NFCWindow(Screen):
         return True
 
 
-
-
 class ErrorPop(BoxLayout):
     closePopup = ObjectProperty(None)    
     
+
+class QRWindow(Screen):
+    def on_enter(self):
+        nfc_connection()
+        self.genQrcode()
+    
+    def on_leave(self):
+        self.ids['qr_label'].text = '学生証をタッチしてください'
+        self.ids['qr_png'].source = ''
+    
+    def genQrcode(self):
+        self.sudentID = PayInfo.get_studentID()
+        self.qrImg = qrcode.make(self.sudentID)
+        self.qrImg.save('studentQR.png')
+        self.ids['qr_label'].text = 'KatsuPayスマホアプリで\nこのQRコードを読み撮ってください．'
+        self.ids['qr_png'].source = 'studentQR.png'
+
+    pass
 
 
 kv = Builder.load_file("register.kv")
