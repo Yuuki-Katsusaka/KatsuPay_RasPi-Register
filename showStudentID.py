@@ -4,15 +4,22 @@ import nfc
 from binascii import hexlify
 import binascii
 
+from PayInfo import PayInfo
+
+
 # 学籍番号のサービスコード
 card_service_code = 0x1A8B 
 
-student_num = -1 # 学籍番号のグローバル変数
+is_valid_card = False
 
 def on_connect(tag):
-    print(type(tag))
-    if isinstance(tag, nfc.tag.tt3.Type3Tag):
+    
+    global is_valid_card
+
+    if (str(tag)[0:8] == "Type3Tag"):
         try:
+            is_valid_card = True
+
             idm, pmm = tag.polling(system_code=0xfe00)
             tag.idm, tag.pmm, tag.sys = idm, pmm, 0xfe00
 
@@ -20,15 +27,16 @@ def on_connect(tag):
             bc = nfc.tag.tt3.BlockCode(0) # ブロック番号は0
             data = tag.read_without_encryption([sc], [bc])
 
-            global student_num
-            student_num = data[4:11].decode()
+            PayInfo.set_studentID(data[4:11].decode())
             
-            print('あなたの学生番号は' + student_num + 'です．')
+            print('あなたの学生番号は' + PayInfo.get_studentID() + 'です．')
             
         except Exception as e:
+            is_valid_card = False
             print("error: %s" % e)
             
     else:
+        is_valid_card = False
         print("error: tag isn't Type3Tag")
     
     

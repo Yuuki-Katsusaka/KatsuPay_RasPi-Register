@@ -3,6 +3,7 @@
 WindowManager:
     CustomerWindow:
     StoreWindow:
+    SalesWindow:
     CalculatorWindow:
     NFCWindow:
 
@@ -13,24 +14,28 @@ WindowManager:
 
 <CustomerWindow>:
     name: 'customer'
+    bl: boxl
     BoxLayout:
+        id: boxl
         orientation: 'horizontal'
         BoxLayout:
             orientation: 'vertical'
             Button:
                 text: '支払う'
                 on_release: 
-                    app.root.current = 'calculator'
+                    root.press_PaymentButton()
+                    root.manager.current = 'calculator'
                     root.manager.transition.direction = 'down'
             Button:
                 text: 'チャージする'
                 on_release: 
-                    app.root.current = 'calculator'
+                    root.press_ChargeButton()
+                    root.manager.current = 'calculator'
                     root.manager.transition.direction = 'down'
         Button:
             text: '店舗用ページへ'
             on_release: 
-                app.root.current = 'store'
+                root.manager.current = 'store'
                 root.manager.transition.direction = 'left'
 
 <StoreWindow>:
@@ -38,17 +43,53 @@ WindowManager:
     BoxLayout:
         Button:
             text: '売上の確認'
+            on_release: 
+                root.manager.current = 'sales'
         Button:
             text: '販売者ページへ'
             on_release: 
-                app.root.current = 'customer'
+                root.manager.current = 'customer'
                 root.manager.transition.direction = 'right'
+
+<SalesWindow>:
+    name: 'sales'
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            size_hint_y: 0.2
+            text: '戻る'
+            on_release: 
+                root.manager.current = 'store'
+        Label:
+            size_hite_y: 0.2
+            id: sales_price
+            text: '売上金額：受信中．．．'        
+        # ScrollVi/ew:
+            # size_hint_y: 0.6
+        TestLayout:
+            id: tst
+            size_hit_y: 0.6
+
+<TestLayout>:
+    orientation: 'vertical'
+    # size_hint_y: None
+    # height: self.minimum_height
+    # Button:
+    #     text: 'test'
+    #     on_release:
+    #         root.add_b()    
+
+# <ProductsWindow>:
+#     name: 'products'
+#     TestLayout:
+
+
 
 <CalculatorWindow>:
     name: 'calculator'
     BoxLayout:
         orientation: 'vertical'
-        id: bl_cal
+
 
         Label:
             text: '金額を入力してください'
@@ -113,8 +154,19 @@ WindowManager:
 <NumberButton@Button>:
 
 
-
 <ClearButton@Button>:
+
+
+
+<ErrorPop>:
+    orientation: 'vertical'
+    Label:
+        text: 'エラーが発生しました．'
+    BoxLayout:
+        Button:
+            text: 'メニューに戻る'
+            on_release: root.closePopup()
+            
 
 
 <NFCWindow>:
@@ -122,5 +174,9 @@ WindowManager:
     BoxLayout:
         orientation: 'vertical'
         Label:
-            text: '学生証をかざしてください'
-        
+            id: nfc_label
+            text: '学生証をリーダにタッチしてください'
+        Button:
+            text: 'メニューに戻る'
+            on_release: 
+                root.backWindow()   
