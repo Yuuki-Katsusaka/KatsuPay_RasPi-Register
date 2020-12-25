@@ -1,20 +1,51 @@
 #:kivy 1.0.9
 
 WindowManager:
+    LoginWindow:
     CustomerWindow:
     StoreWindow:
     SalesWindow:
     CalculatorWindow:
     NFCWindow:
+    QRWindow:
 
 
 <Widget>:
     font_name: '/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf'
 
 
+<LoginWindow>:
+    name: 'login'
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: '店舗アカウントIDを入力'
+        BoxLayout:
+            orientation: 'horizontal'
+            Label:
+                size_hint_x: 0.2
+                text: '店舗ID'
+            TextInput:
+                id: login_id
+                size_hint_x: 0.8
+                text: ''
+        BoxLayout:
+            orientation: 'horizontal'
+            Label:
+                size_hint_x: 0.2
+                text: 'パスワード'
+            TextInput:
+                id: login_pass
+                size_hint_x: 0.8
+                text: ''
+        Button:
+            text: 'OK'
+            on_release: 
+                root.checkID()
+
+
 <CustomerWindow>:
     name: 'customer'
-    bl: boxl
     BoxLayout:
         id: boxl
         orientation: 'horizontal'
@@ -32,11 +63,18 @@ WindowManager:
                     root.press_ChargeButton()
                     root.manager.current = 'calculator'
                     root.manager.transition.direction = 'down'
-        Button:
-            text: '店舗用ページへ'
-            on_release: 
-                root.manager.current = 'store'
-                root.manager.transition.direction = 'left'
+        BoxLayout:
+            orientation: 'vertical'
+            Button:
+                text: '店舗用ページへ'
+                on_release: 
+                    root.manager.current = 'store'
+                    root.manager.transition.direction = 'left'
+            Button:
+                text: '学生証の登録'
+                on_release: 
+                    root.manager.current = 'qr'
+
 
 <StoreWindow>:
     name: 'store'
@@ -179,4 +217,22 @@ WindowManager:
         Button:
             text: 'メニューに戻る'
             on_release: 
-                root.backWindow()   
+                root.backWindow()
+
+
+<QRWindow>:
+    name: 'qr'
+    BoxLayout:
+        orientation: 'horizontal'
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                id: qr_label
+                text: '学生証をタッチしてください'
+            Button:
+                text: '戻る'
+                on_release:
+                    root.manager.current = 'customer'
+        Image:
+            id: qr_png
+            source: ''

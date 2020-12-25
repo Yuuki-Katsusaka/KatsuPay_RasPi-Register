@@ -32,7 +32,12 @@ class LoginWindow(Screen):
         self.usrID = self.ids['login_id'].text
         self.usrPass = self.ids['login_pass'].text
 
-        if((self.usrID == '123') and (self.usrPass == 'password')):
+        self.url = DatabaseInfo.HTTP + "/store/login/" + self.usrID + "/" + self.usrPass
+        self.lReq = UrlRequest(self.url, on_success=self.checkReq, on_failure=(lambda req, result: self.openErrorPop(ErrorInfo.E3)))
+
+    def checkReq(self, req, result):
+        if result == True:
+            PayInfo.set_storeID(self.usrID)
             self.manager.current = 'customer'
         else:
             self.openErrorPop(ErrorInfo.E3)
@@ -44,8 +49,8 @@ class LoginWindow(Screen):
 
     def closePopup(self):
         self.popup.dismiss()
-        self.manager.current = 'customer'
-        
+        self.manager.current = 'login'
+
     pass
 
 class CustomerWindow(Screen):
@@ -138,7 +143,7 @@ class NFCWindow(Screen):
                 print("error: The payType is not correct.")
                 self.openErrorPop(ErrorInfo.E0)
 
-            rb = json.dumps({"customerId": "1000001", "storeId": "2000001","productIdList": "0010001$0010002$0010002", "price": "100000"})
+            rb = json.dumps({"customerId": "2067001", "storeId": "2068001","productIdList": "0010001$0010002$0010002", "price": "100000"})
             head = {"Content-Type": "application/json"}
             self.req = UrlRequest(self.URL,on_success=self.successRequest,req_body=rb,req_headers=head)
         else:
@@ -179,10 +184,8 @@ class NFCWindow(Screen):
 
         return True
 
-
 class ErrorPop(BoxLayout):
-    closePopup = ObjectProperty(None)    
-    
+    closePopup = ObjectProperty(None)   
 
 class QRWindow(Screen):
     def on_enter(self):
