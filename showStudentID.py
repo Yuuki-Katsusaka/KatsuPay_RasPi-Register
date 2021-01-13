@@ -29,7 +29,7 @@ def on_connect(tag):
 
             PayInfo.set_studentID(data[4:11].decode())
             
-            print('あなたの学生番号は' + PayInfo.get_studentID() + 'です．')
+            # print('あなたの学生番号は' + PayInfo.get_studentID() + 'です．')
             
         except Exception as e:
             is_valid_card = False
