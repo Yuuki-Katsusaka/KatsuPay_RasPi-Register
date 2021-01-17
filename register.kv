@@ -8,7 +8,6 @@ WindowManager:
     CalculatorWindow:
     NFCWindow:
     QRWindow:
-    ProductWindow:
     SelectProductWindow:
     ProductEditWindow:
 
@@ -17,6 +16,14 @@ WindowManager:
 
 <KLabel@Label>:
     font_size: 30
+<KLabel2@Label>:
+    font_size: 30
+    canvas.before:
+        Color:
+            rgba: 0,0.7,0.4,0.7
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
 <KButton@Button>:
     font_size: 25
@@ -26,6 +33,12 @@ WindowManager:
 
 <LoginWindow>:
     name: 'login'
+    FloatLayout:
+        Button:
+            text: 'アプリ終了'
+            size_hint: 0.1, 0.1
+            pos_hint: {'right':1, 'top':1}
+            on_release: root.sysExit()
     BoxLayout:
         orientation: 'vertical'
         KLabel:
@@ -88,46 +101,56 @@ WindowManager:
 <StoreWindow>:
     name: 'store'
     BoxLayout:
+        KButton:
+            text: '商品の追加・編集・削除'
+            on_release:
+                root.manager.current = 'p_edit'
         BoxLayout:
             orientation: 'vertical'
-            KButton:
-                text: '商品の追加'
-                on_release:
-                    root.manager.current = 'product'
-            KButton:
-                text: '商品の編集・削除'
-                on_release:
-                    root.manager.current = 'p_edit'
-        BoxLayout:
-            orientation: 'vertical'
-            KButton:
-                text: '売上の確認'
-                on_release: 
-                    root.manager.current = 'sales'
             KButton:
                 text: '販売者ページへ'
                 on_release: 
                     root.manager.current = 'customer'
                     root.manager.transition.direction = 'right'
+            KButton:
+                text: '売上の確認'
+                on_release: 
+                    root.manager.current = 'sales'
+    FloatLayout:
+        Button:
+            text: 'アプリ終了'
+            size_hint: 0.1, 0.1
+            pos_hint: {'right':1, 'top':1}
+            on_release: root.sysExit()
 
 <SalesWindow>:
     name: 'sales'
     BoxLayout:
         orientation: 'vertical'
-        KButton:
+        BoxLayout:
             size_hint_y: 0.2
-            text: '戻る'
-            on_release: 
-                root.manager.current = 'store'
+            KLabel:
+                size_hint_x: 0.7
+                text: '売上の確認'
+            KButton:
+                size_hint_x: 0.3
+                text: '戻る'
+                on_release: 
+                    root.manager.current = 'store'
         KLabel:
-            size_hite_y: 0.2
             id: sales_price
+            size_hint_y: 0.2
             text: '売上金額：受信中．．．'        
-        # ScrollVi/ew:
-            # size_hint_y: 0.6
-        TestLayout:
-            id: tst
-            size_hit_y: 0.6
+        BoxLayout:
+            size_hint_y: 0.6
+            ScrollView:
+                size_hint_x: 0.3
+                BoxLayout:
+                    orientation: 'vertical'
+                    id: tran
+                    size_hint_y: None
+                    height: self.minimum_height
+                    
 
 <TestLayout>:
     orientation: 'vertical'
@@ -196,8 +219,10 @@ WindowManager:
         BoxLayout:
             size_hint_y: 0.1
             KLabel:
+                size_hint_x: 0.7
                 text: '商品を選択してください'
             KButton:
+                size_hint_x: 0.3
                 text: '戻る'
                 on_release:
                     root.manager.current = 'customer'
@@ -264,53 +289,53 @@ WindowManager:
             size_hint_y: 0.8
             source: ''
 
-<ProductWindow>:
-    name: 'product'
-    BoxLayout:
-        orientation: 'vertical'
-        BoxLayout:
-            size_hint_y: 0.2
-            KLabel:
-                size_hint_x: 0.7
-                text: '商品の追加'
-            KButton:
-                size_hint_x: 0.3
-                text: '戻る'
-                on_release: 
-                    root.manager.current = 'store'
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.2
-            KLabel:
-                size_hint_x: 0.2
-                text: '商品名'
-            KTextInput:
-                id: p_name
-                size_hint_x: 0.8
-                text: ''
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.2
-            KLabel:
-                size_hint_x: 0.2
-                text: '価格'
-            KTextInput:
-                id: p_price
-                size_hint_x: 0.8
-                text: ''
-                input_filter: 'int'
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: 0.4
-            KLabel:
-                size_hint_x: 0.7
-                id: p_label
-                text: ''
-            KButton:
-                size_hint_x: 0.3
-                text: '追加'
-                on_release: 
-                    root.addProduct()
+# <ProductWindow>:
+#     name: 'product'
+#     BoxLayout:
+#         orientation: 'vertical'
+#         BoxLayout:
+#             size_hint_y: 0.2
+#             KLabel:
+#                 size_hint_x: 0.7
+#                 text: '商品の追加'
+#             KButton:
+#                 size_hint_x: 0.3
+#                 text: '戻る'
+#                 on_release: 
+#                     root.manager.current = 'store'
+#         BoxLayout:
+#             orientation: 'horizontal'
+#             size_hint_y: 0.2
+#             KLabel:
+#                 size_hint_x: 0.2
+#                 text: '商品名'
+#             KTextInput:
+#                 id: p_name
+#                 size_hint_x: 0.8
+#                 text: ''
+#         BoxLayout:
+#             orientation: 'horizontal'
+#             size_hint_y: 0.2
+#             KLabel:
+#                 size_hint_x: 0.2
+#                 text: '価格'
+#             KTextInput:
+#                 id: p_price
+#                 size_hint_x: 0.8
+#                 text: ''
+#                 input_filter: 'int'
+#         BoxLayout:
+#             orientation: 'horizontal'
+#             size_hint_y: 0.4
+#             KLabel:
+#                 size_hint_x: 0.7
+#                 id: p_label
+#                 text: ''
+#             KButton:
+#                 size_hint_x: 0.3
+#                 text: '追加'
+#                 on_release: 
+#                     root.addProduct()
 
 
 <ProductEditWindow>:
@@ -331,6 +356,12 @@ WindowManager:
             size_hint_y: 0.8
             ScrollView:
                 size_hint_x: 0.3
+                canvas.before:
+                    Color:
+                        rgba: 0,0,0.7,0.7
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
                 BoxLayout:
                     id: prod
                     size_hint_y: None
@@ -341,7 +372,7 @@ WindowManager:
                 size_hint_x: 0.7
                 BoxLayout:
                     size_hint_y: 0.2
-                    KLabel:
+                    KLabel2:
                         size_hint_x: 0.2
                         text: '商品番号'
                     KTextInput:
@@ -349,10 +380,16 @@ WindowManager:
                         size_hint_x: 0.8
                         font_size: 30
                         text: ''
-                        disabled: True
+                        readonly: True
+                        canvas.before:
+                            Color:
+                                rgba: 0.2,0.2,0.2,0.5
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                 BoxLayout:
                     size_hint_y: 0.2
-                    KLabel:
+                    KLabel2:
                         size_hint_x: 0.2
                         text: '商品名'
                     KTextInput:
@@ -360,10 +397,10 @@ WindowManager:
                         size_hint_x: 0.8
                         font_size: 30
                         text: ''
-                        disabled: True
+                        readonly: root.isReadOnly
                 BoxLayout:
                     size_hint_y: 0.2
-                    KLabel:
+                    KLabel2:
                         size_hint_x: 0.2
                         text: '金額'
                     KTextInput:
@@ -371,7 +408,8 @@ WindowManager:
                         size_hint_x: 0.8
                         font_size: 30
                         text: ''
-                        disabled: True
+                        readonly: root.isReadOnly
+                        input_filter: 'int'
                 BoxLayout:
                     size_hint_y: 0.4
                     KLabel:
@@ -386,10 +424,10 @@ WindowManager:
                             id: edit_b
                             text: '編集'
                             on_release:
-                                root.editProduct()
+                                root.editEvent()
                         KButton:
                             id: delete_b
                             text: '削除'
                             on_release:
-                                root.deleteProduct()
+                                root.deleteEvent()
                     

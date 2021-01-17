@@ -1,17 +1,23 @@
+import sys
 import time
 from threading import Thread
 import json
 import qrcode
+import subprocess
+import requests
 
 from kivy.app import App
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty
+from kivy.core.window import Window
+from kivy.properties import ObjectProperty, BooleanProperty
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.network.urlrequest import UrlRequest
+Window.size = (1024, 600)
+Window.fullscreen = True
 
 from showStudentID import nfc_connection
 from PayInfo import PayInfo, PayType
@@ -59,6 +65,9 @@ class LoginWindow(Screen):
     def closePopup(self):
         self.popup.dismiss()
         self.manager.current = 'login'
+    
+    def sysExit(self):
+        sys.exit(0)
 
 
 class CustomerWindow(Screen):
@@ -70,7 +79,8 @@ class CustomerWindow(Screen):
 
 
 class StoreWindow(Screen):
-    pass
+    def sysExit(self):
+        sys.exit(0)
 
 
 class SalesWindow(Screen):
@@ -82,19 +92,29 @@ class SalesWindow(Screen):
         self.tReq = UrlRequest(self.transURL, on_success=self.func)
 
     def on_leave(self):
-        self.ids["tst"].clear_widgets()
+        self.ids["tran"].clear_widgets()
 
     def printSelesPrice(self, req, result):
         self.ids["sales_price"].text = "売上金額：" + str(result)
     
     def func(self, req, result):
-        for i in result:
-            self.ids["tst"].add_widget(Label(text=str(i.items())))
-            print(i)
-
-
-class TestLayout(BoxLayout):
-    pass
+        cnt = 1
+        for plist in result:
+            self.txt = ""
+            if plist['charge']:
+                self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] + "\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
+            else:
+                self.txt = "--- 取引情報(決済)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId']) + "\n店舗ID：" + str(plist['storeId']) + "\n取引時間：" + str(plist['transactionTime']) + "\n金額：" + str(plist['price']) + "\n購入品：\n"
+                cnt2 = 0
+                for pInfList in plist['productInfoList']:
+                    self.txt += str(pInfList)
+                    if cnt2 % 3 == 0:
+                        self.txt += "\n"
+                    else:
+                        self.txt += ", "
+                    cnt += 1
+            self.ids["tran"].add_widget(Label(font_size=20, height=300, size_hint_y=None, text=self.txt))
+            cnt += 1
 
 
 class CalculatorWindow(Screen):
@@ -141,9 +161,10 @@ class SelectProductWindow(Screen):
     def addText(self, req, result):
         cnt = 0
         for i in result:
-            self.itemList.append(i)
-            self.ids['products'].add_widget(Button(font_size=20, height=300, width=300, size_hint=(None, None), text=(str(cnt)+"："+str(i['name']+"\n"+str(i['price'])+"円")), on_release=self.updatePrice))
-            cnt += 1
+            if i['onSale'] == 'TRUE':
+                self.itemList.append(i)
+                self.ids['products'].add_widget(Button(font_size=20, height=300, width=300, size_hint=(None, None), text=(str(cnt)+"："+str(i['name']+"\n"+str(i['price'])+"円")), on_release=self.updatePrice))
+                cnt += 1
 
     def updatePrice(self, btn):
         self.selectItem.append(self.itemList[int(btn.text[0])]['productId'])
@@ -153,7 +174,6 @@ class SelectProductWindow(Screen):
     def pressEnter(self):
         PayInfo.set_payVal(self.sumPrice)
         PayInfo.set_products(self.selectItem)
-        print(PayInfo.get_products())
         self.manager.current = 'nfc'
 
 
@@ -178,7 +198,7 @@ class NFCWindow(Screen):
                 print("error: The payType is not correct.")
                 self.openErrorPop(ErrorInfo.E0)
         
-            self.req = UrlRequest(self.URL,on_success=self.successRequest,req_body=self.rb,req_headers=DatabaseInfo.HEADER)
+            self.req = UrlRequest(self.URL, on_success=self.successRequest, on_failure=self.failRecuest, req_body=self.rb,req_headers=DatabaseInfo.HEADER)
         else:
             print("error:The ID card held over the card reader is not a student ID card")
             self.openErrorPop(ErrorInfo.E2)
@@ -200,6 +220,10 @@ class NFCWindow(Screen):
         else:
             print("error:The payment could not be made due to insufficient balance.")
             self.openErrorPop(ErrorInfo.E1)
+    
+    def failRecuest(self, req, result):
+        print("An invalid ID card has been detected.")
+        self.openErrorPop(ErrorInfo.E2)
 
     def openErrorPop(self, error):
         content = ErrorPop(closePopup=self.closePopup)
@@ -234,79 +258,111 @@ class QRWindow(Screen):
     def genQrcode(self):
         sudentID = PayInfo.get_studentID()
         cc = int(sudentID) ^ CryptoProtocol.QR_XOR_KEY
+        print("   " + str(bin(int(sudentID))))
+        print(str(bin(CryptoProtocol.QR_XOR_KEY)))
+        print(str(bin(cc)))
         qrImg = qrcode.make(str(cc))
         qrImg.save('studentQR.png')
         self.ids['qr_label'].text = 'KatsuPayスマホアプリで\nこのQRコードを読み撮ってください．'
         self.ids['qr_png'].source = 'studentQR.png'
 
 
-class ProductWindow(Screen):
-    def on_leave(self):
-        self.ids['p_label'].text = '商品の追加'
-        self.ids['p_name'].text = ''
-        self.ids['p_price'].text = ''
-
-    def addProduct(self):
-        name = str(self.ids['p_name'].text)
-        price = str(self.ids['p_price'].text)
-        data = json.dumps({"name": name, "price": price, "onSale": "TRUE"})
-        url = DatabaseInfo.HTTP + '/product/' + str(PayInfo.get_storeID())
-
-        self.req = UrlRequest(url, on_success=self.successAdd, req_body=data, req_headers=DatabaseInfo.HEADER)
-
-    def successAdd(self, req, result):
-        self.ids['p_label'].text = '商品の登録に成功しました．\n' + "商品名：" + str(result['name']) + "¥n" + "金額：" + str(result['price'])
-
-
 class ProductEditWindow(Screen):
     products = []
+    selectProduct = None
     eventPush = False
+    isEdit = False
+    isAdd = False
+    isReadOnly = BooleanProperty(True)
 
     def on_enter(self):
         url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
         self.req = UrlRequest(url, on_success=self.saveProductsData)
     
     def on_leave(self):
-        self.products = []
+        self.products.clear()
+        self.selectProduct = None
         self.ids['prod'].clear_widgets()
         self.eventPush = False
+        self.isReadOnly = True
+        self.isAdd = False
+        self.isEdit = False
         self.ids['edit_b'].text = "編集"
         self.ids['delete_b'].text = "削除"
         self.ids['warning'].text = '編集・削除したい商品を\n選択してください'
 
     def saveProductsData(self, req, result):
-        self.products = result
         cnt = 0
-        for plist in self.products:
-            if plist['onSale']:
-                print(plist)
+        self.ids['prod'].add_widget(Button(font_size=20, height=150, size_hint_y=None, text="商品追加", on_release=self.addProduct))
+        for plist in result:
+            if (plist['onSale'] == 'TRUE'):
+                self.products.append(plist)
                 pbutton = Button(font_size=20, height=150, size_hint_y=None, text=(str(cnt) + ". " + str(plist['name']) + "\n" + str(plist['price']) + "円"), on_release=self.showProductInfo)
                 self.ids['prod'].add_widget(pbutton)
                 cnt += 1
+    
+    def addProduct(self, btn):
+        self.ids['warning'].text = "商品情報を記入し，\n適用ボタンを押してください"
+        self.ids['edit_b'].text = "追加"
+        self.ids['delete_b'].text = "キャンセル"
+        self.ids['p_id'].text = "(自動で割振)"
+        self.ids['name'].text = ""
+        self.ids['price'].text = ""
+        self.isAdd = True
+        self.isReadOnly = False
 
     def showProductInfo(self, btn):
-        self.ids['p_id'].text = str(self.products[int(btn.text[0])]['productId'])
-        self.ids['name'].text = str(self.products[int(btn.text[0])]['name'])
-        self.ids['price'].text = str(self.products[int(btn.text[0])]['price'])
+        self.selectProduct = self.products[int(btn.text[0])]
+        self.ids['p_id'].text = str(self.selectProduct['productId'])
+        self.ids['name'].text = str(self.selectProduct['name'])
+        self.ids['price'].text = str(self.selectProduct['price'])
     
-    def editProduct(self):
-        if not self.eventPush:
+    def editEvent(self):
+        if self.isAdd:
+            self.ids['edit_b'].text = "編集"
+            self.ids['delete_b'].text = "削除"
+            self.ids['warning'].text = "データ送信中..."
+            data = json.dumps({"name": str(self.ids['name'].text), "price": str(self.ids['price'].text), "onSale": "TRUE"})
+            url = DatabaseInfo.HTTP + '/product/' + str(PayInfo.get_storeID())
+            self.req = UrlRequest(url, on_success=self.successAdd, on_failure=self.failAdd, req_body=data, req_headers=DatabaseInfo.HEADER)
+        elif not self.eventPush:
             self.ids['warning'].text = "商品情報を編集し，\n適用ボタンを押してください"
-            self.ids['name'].disabled = False
-            self.ids['price'].disabled = False
             self.ids['edit_b'].text = "適用"
             self.ids['delete_b'].text = "キャンセル"
             self.eventPush = True
+            self.isEdit = True
+            self.isReadOnly = False
         else:
-            self.ids['name'].disabled = True
-            self.ids['price'].disabled = True
             self.ids['edit_b'].text = "編集"
             self.ids['delete_b'].text = "削除"
+            self.ids['warning'].text = "データ送信中..."
             self.eventPush = False
-            pass
+            self.isReadOnly = True
+            if self.isEdit:
+                self.data = {'productId': str(self.selectProduct['productId']), 'name': str(self.ids['name'].text), 'price':str(self.ids['price'].text), 'onSale': 'TRUE'}
+            else:
+                self.data = {'productId': str(self.selectProduct['productId']), 'name': str(self.selectProduct['name']), 'price':str(self.selectProduct['price']), 'onSale': 'FALSE'}
+            url = DatabaseInfo.HTTP + "/product"
+            req = requests.put(url, json=self.data)
+            if (req.status_code == 200):
+                self.products.clear()
+                self.ids['prod'].clear_widgets()
+                url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
+                self.req = UrlRequest(url, on_success=self.saveProductsData)
+                self.ids['warning'].text = '商品情報を更新しました'
+            else:
+                self.ids['warning'].text = 'エラー発生\n商品情報が更新できませんでした'
+            self.isEdit = False
 
-    def deleteProduct(self):
-        if not self.eventPush:
+    def deleteEvent(self):
+        if self.isAdd:
+            self.ids['edit_b'].text = "編集"
+            self.ids['delete_b'].text = "削除"
+            self.ids['warning'].text = '編集・削除したい商品を\n選択してください'
+            self.eventPush = False
+            self.isReadOnly = True
+            self.isAdd = False
+        elif not self.eventPush:
             self.ids['warning'].text = "本当に商品を削除しますか？"
             self.ids['edit_b'].text = "適用"
             self.ids['delete_b'].text = "キャンセル"
@@ -314,8 +370,25 @@ class ProductEditWindow(Screen):
         else:
             self.ids['edit_b'].text = "編集"
             self.ids['delete_b'].text = "削除"
+            self.ids['warning'].text = '編集・削除したい商品を\n選択してください'
             self.eventPush = False
-            
+            self.isReadOnly = True
+    
+    def successAdd(self, req, result):
+        self.isAdd = False
+        self.isEdit = False
+        self.isReadOnly = True
+        self.products.clear()
+        self.ids['prod'].clear_widgets()
+        url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
+        self.req = UrlRequest(url, on_success=self.saveProductsData)
+        self.ids['warning'].text = "商品を追加しました"
+
+    def failAdd(self, req, result):
+        self.isAdd = False
+        self.isEdit = False
+        self.isReadOnly = True
+        self.ids['warning'].text = "エラー発生\n商品情報が追加できませんでした"
 
 kv = Builder.load_file("register.kv")
 class DisplayApp(App):

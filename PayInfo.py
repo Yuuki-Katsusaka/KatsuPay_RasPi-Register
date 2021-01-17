@@ -75,7 +75,6 @@ class PayInfo():
         for i in PayInfo.get_products():
             productIdList += str(i) + "$"
         productIdList = productIdList.rstrip("$")
-        print(productIdList)
         return {"customerId": str(PayInfo.get_studentID()), "storeId": str(PayInfo.get_storeID()), "productIdList": productIdList, "price": str(PayInfo.get_payVal())}
 
     @staticmethod
