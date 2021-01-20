@@ -92,10 +92,12 @@ WindowManager:
                 size_hint_x: 0.8
                 text: ''
                 password: True
-        KButton:
-            text: 'OK'
-            on_release: 
-                root.checkID()
+        BoxLayout:
+            id: login_lay
+            KButton:
+                text: 'OK'
+                on_release: 
+                    root.checkID()
 
 
 <CustomerWindow>:
@@ -161,7 +163,7 @@ WindowManager:
                     center_y: self.parent.center_y
             MenuButton:
                 id: menu_b
-                on_release: root.manager.current = 'store'
+                on_release: root.manager.current = 'login'
                 Image:
                     source: './img/setting.png'
                     center_x: self.parent.center_x

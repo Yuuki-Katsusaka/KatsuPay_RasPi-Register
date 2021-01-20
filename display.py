@@ -72,6 +72,8 @@ class WindowManager(ScreenManager):
     pass
 
 class LoginWindow(Screen):
+    login_flag = False
+
     def checkID(self):
         self.usrID = self.ids['login_id'].text
         self.usrPass = self.ids['login_pass'].text
@@ -85,11 +87,21 @@ class LoginWindow(Screen):
         if not result:
             self.openErrorPop(ErrorInfo.E3)
         elif (result['storeId'] == str(self.usrID) and (result['password'] == str(self.usrPass))):
-            PayInfo.set_storeID(self.usrID)
-            self.ids.login_id.readonly = True
-            self.manager.current = 'customer'
+            if not self.login_flag:
+                PayInfo.set_storeID(self.usrID)
+                self.login_flag = True
+                self.ids.login_id.readonly = True
+                self.ids['login_lay'].add_widget(Button(font_size=30, text='戻る', on_release=self.addButton))
+                self.ids.login_pass.text = ''
+                self.manager.current = 'customer'
+            else:
+                self.ids.login_pass.text = ''
+                self.manager.current = 'store'
         else:
             self.openErrorPop(ErrorInfo.E3)
+    
+    def addButton(self, btn):
+        self.manager.current = 'customer'
 
     def openErrorPop(self, error):
         content = ErrorPop(closePopup=self.closePopup)
