@@ -5,14 +5,43 @@ WindowManager:
     CustomerWindow:
     StoreWindow:
     SalesWindow:
-    CalculatorWindow:
-    NFCWindow:
-    QRWindow:
-    SelectProductWindow:
     ProductEditWindow:
 
 <Widget>:
     font_name: '/usr/share/fonts/truetype/takao-gothic/TakaoPGothic.ttf'
+
+<MenuButton@Button>:
+    font_size: 30
+    text_size: self.size
+    halign: 'center'
+    valign: 'bottom'
+    color: (0,0,0,1)
+    background_normal: ''
+    background_down: ''
+
+<InfoLabel@Label>:
+    font_size: 40
+    color: 0,0,0,1
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<ChargeButton@Button>:
+    font_size: 80
+    background_color: .3, .8, .9, 1
+
+<SelectButton@Button>:
+    font_size: 50
+
+<PriceLabel@Label>:
+    font_size: 30
+
+<PriceTextInput@TextInput>:
+    font_size: 60
+
 
 <KLabel@Label>:
     font_size: 30
@@ -72,30 +101,233 @@ WindowManager:
 <CustomerWindow>:
     name: 'customer'
     BoxLayout:
-        id: boxl
-        orientation: 'horizontal'
+        ScreenManager:
+            size_hint_x: 0.75
+            id: sm_cus
+            Screen:
+                name: 'none'
+            ItemSelectingScreen:
+                name: 's_item'
+            ChargeSelectingScreen:
+                name: 's_charge'
+            SignupScreen:
+                name: 's_signup'
+            NfcScreen:
+                name: 's_nfc'
         BoxLayout:
             orientation: 'vertical'
-            KButton:
-                text: '支払う'
-                on_release: 
-                    root.press_PaymentButton()
-                    root.manager.current = 'select_product'
-            KButton:
-                text: 'チャージする'
-                on_release: 
-                    root.press_ChargeButton()
-                    root.manager.current = 'calculator'
+            size_hint_x: 0.15
+            MenuButton:
+                id: pay_b
+                text: '支払い'
+                on_release: root.updateActiveBtn(1)
+                canvas:
+                    Color:
+                        rgba: root.color[1]
+                    Rectangle:
+                        pos: self.pos
+                        size: (self.width / 12, self.height)
+                Image:
+                    source: './img/pay.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+            MenuButton:
+                id: charge_b
+                text: '\nチャージ'
+                on_release: root.updateActiveBtn(2)
+                canvas:
+                    Color:
+                        rgba: root.color[2]
+                    Rectangle:
+                        pos: self.pos
+                        size: (self.width / 12, self.height)
+                Image:
+                    source: './img/charge.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+            MenuButton:
+                id: signup_b
+                text: '登録'
+                on_release: root.updateActiveBtn(3)
+                canvas:
+                    Color:
+                        rgba: root.color[3]
+                    Rectangle:
+                        pos: self.pos
+                        size: (self.width / 12, self.height)
+                Image:
+                    source: './img/card.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+            MenuButton:
+                id: menu_b
+                on_release: root.manager.current = 'store'
+                Image:
+                    source: './img/setting.png'
+                    center_x: self.parent.center_x
+                    center_y: self.parent.center_y
+
+<ItemSelectingScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        InfoLabel:
+            size_hint_y: .1
+            text: '商品を選択してください'
         BoxLayout:
-            orientation: 'vertical'
-            KButton:
-                text: '店舗用ページへ'
-                on_release: 
-                    root.manager.current = 'store'
-            KButton:
-                text: '学生証の登録'
-                on_release: 
-                    root.manager.current = 'qr'
+            size_hint_y: .9            
+            ScrollView:
+                size_hint_x: .6
+                BoxLayout:
+                    orientation: 'vertical'
+                    id: items
+                    size_hint_y: None
+                    height: self.minimum_height
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: .4
+                BoxLayout:
+                    size_hint_y: .05
+                    PriceLabel:
+                        size_hint_x: .8
+                        text: '商品名・金額'
+                    PriceLabel:
+                        size_hint_x: .2
+                        text: '個数'
+                ScrollView:
+                    size_hint_y: .5
+                    BoxLayout:
+                        orientation: 'vertical'
+                        id: cart
+                        size_hint_y: None
+                        height: self.minimum_height
+                BoxLayout:
+                    size_hint_y: .15
+                    PriceLabel:
+                        size_hint_x: .3
+                        text: '金額'
+                    PriceTextInput:
+                        size_hint_x: .6
+                        text: root.price_property
+                        input_filter: 'int'
+                        readonly: True
+                SelectButton:
+                    size_hint_y: 0.15
+                    text: '支払いへ'
+                    on_release: root.pressEnterBtn()
+                SelectButton:
+                    size_hint_y: 0.15
+                    text: '取消'
+                    on_release: root.pressCancelBtn()
+    
+
+<ChargeSelectingScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        InfoLabel:
+            size_hint_y: .1
+            text: '金額を入力してください'
+        BoxLayout:
+            size_hint_y: .9
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: .6
+                ChargeButton:
+                    size_hint_y: .25
+                    text: '+50'
+                    on_release: root.pressPriceBtn(50)
+                ChargeButton:
+                    size_hint_y: .25
+                    text: '+100'
+                    on_release: root.pressPriceBtn(100)
+                ChargeButton:
+                    size_hint_y: .25
+                    text: '+500'
+                    on_release: root.pressPriceBtn(500)
+                ChargeButton:
+                    size_hint_y: .25
+                    text: '+1,000'
+                    on_release: root.pressPriceBtn(1000)
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_x: .4
+                Label:
+                    size_hint_y: .55
+                BoxLayout:
+                    size_hint_y: .15
+                    PriceLabel:
+                        size_hint_x: .3
+                        text: '金額'
+                    PriceTextInput:
+                        size_hint_x: .6
+                        text: root.price_property
+                        input_filter: 'int'
+                        readonly: True
+                    PriceLabel:
+                        size_hint_x: .1
+                        text: '円'
+                SelectButton:
+                    size_hint_y: .15
+                    text: 'チャージ'
+                    on_release: root.pressEnterBtn()
+                SelectButton:
+                    size_hint_y: .15
+                    text: '取消'
+                    on_release: root.pressCancelBtn()
+
+
+<SignupScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        InfoLabel:
+            id: nfc_inf
+            size_hint_y: 0.1
+            text: '学生証をリーダにタッチしてください'
+        AnchorLayout:
+            anchor_x: 'center'
+            anchor_y: 'center'
+            Image:
+                id: sign_img
+                size_hint: 0.6, 0.6
+                source: './img/nfc_touch.gif'
+                anim_delay: 1
+                # allow_strech: True
+
+<NfcScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        InfoLabel:
+            id: nfc_inf
+            size_hint_y: 0.1
+            text: '学生証をリーダにタッチしてください'
+        Image:
+            id: nfc_img
+            size_hint_y: 0.5
+            source: root.source
+            anim_delay: 1
+            allow_strech: True
+        AnchorLayout:
+            size_hint_y: 0.4
+            anchor_x: 'center'
+            anchor_y: 'center'
+            SelectButton:
+                id: nfc_b
+                size_hint: 0.5,0.5
+                text: '取消'
+                on_release: root.pressCancelBtn()
 
 
 <StoreWindow>:
@@ -150,16 +382,6 @@ WindowManager:
                     id: tran
                     size_hint_y: None
                     height: self.minimum_height
-                    
-
-<TestLayout>:
-    orientation: 'vertical'
-    # size_hint_y: None
-    # height: self.minimum_height
-    # KButton:
-    #     text: 'test'
-    #     on_release:
-    #         root.add_b()    
 
 
 <CalculatorWindow>:
@@ -212,39 +434,6 @@ WindowManager:
                         root.press_enter()
             
 
-<SelectProductWindow>:
-    name: 'select_product'
-    BoxLayout:
-        orientation: 'vertical'
-        BoxLayout:
-            size_hint_y: 0.1
-            KLabel:
-                size_hint_x: 0.7
-                text: '商品を選択してください'
-            KButton:
-                size_hint_x: 0.3
-                text: '戻る'
-                on_release:
-                    root.manager.current = 'customer'
-        ScrollView:
-            size_hint_y: 0.8
-            StackLayout:
-                id: products
-                size_hint_y: None
-                height: self.minimum_height
-
-        BoxLayout:
-            size_hint_y: 0.1
-            KLabel:
-                id: s_price
-                text: '小計：0円'
-            KButton:
-                text: '支払いへ進む'
-                on_release:
-                    root.pressEnter()
-
-
-
 <ErrorPop>:
     orientation: 'vertical'
     KLabel:
@@ -253,89 +442,6 @@ WindowManager:
         KButton:
             text: 'メニューに戻る'
             on_release: root.closePopup()
-            
-
-
-<NFCWindow>:
-    name: 'nfc'
-    BoxLayout:
-        orientation: 'vertical'
-        KLabel:
-            id: nfc_label
-            text: '学生証をリーダにタッチしてください'
-        KButton:
-            text: 'メニューに戻る'
-            on_release: 
-                root.backWindow()
-
-
-<QRWindow>:
-    name: 'qr'
-    BoxLayout:
-        orientation: 'vertical'
-        BoxLayout:
-            size_hint_y: 0.2
-            KLabel:
-                id: qr_label
-                size_hint_x: 0.7
-                text: '学生証をタッチしてください'
-            KButton:
-                text: '戻る'
-                size_hint_x: 0.3
-                on_release:
-                    root.manager.current = 'customer'
-        Image:
-            id: qr_png
-            size_hint_y: 0.8
-            source: ''
-
-# <ProductWindow>:
-#     name: 'product'
-#     BoxLayout:
-#         orientation: 'vertical'
-#         BoxLayout:
-#             size_hint_y: 0.2
-#             KLabel:
-#                 size_hint_x: 0.7
-#                 text: '商品の追加'
-#             KButton:
-#                 size_hint_x: 0.3
-#                 text: '戻る'
-#                 on_release: 
-#                     root.manager.current = 'store'
-#         BoxLayout:
-#             orientation: 'horizontal'
-#             size_hint_y: 0.2
-#             KLabel:
-#                 size_hint_x: 0.2
-#                 text: '商品名'
-#             KTextInput:
-#                 id: p_name
-#                 size_hint_x: 0.8
-#                 text: ''
-#         BoxLayout:
-#             orientation: 'horizontal'
-#             size_hint_y: 0.2
-#             KLabel:
-#                 size_hint_x: 0.2
-#                 text: '価格'
-#             KTextInput:
-#                 id: p_price
-#                 size_hint_x: 0.8
-#                 text: ''
-#                 input_filter: 'int'
-#         BoxLayout:
-#             orientation: 'horizontal'
-#             size_hint_y: 0.4
-#             KLabel:
-#                 size_hint_x: 0.7
-#                 id: p_label
-#                 text: ''
-#             KButton:
-#                 size_hint_x: 0.3
-#                 text: '追加'
-#                 on_release: 
-#                     root.addProduct()
 
 
 <ProductEditWindow>:

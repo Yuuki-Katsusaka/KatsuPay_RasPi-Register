@@ -1,18 +1,21 @@
 import sys
-import time
 from threading import Thread
 import json
 import qrcode
-import subprocess
 import requests
+
+import binascii
+import nfc
 
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty, BooleanProperty
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.clock import mainthread
+from kivy.properties import ListProperty, ObjectProperty, BooleanProperty, StringProperty
+from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition, FallOutTransition
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.network.urlrequest import UrlRequest
@@ -35,6 +38,36 @@ class CryptoProtocol():
     QR_XOR_KEY = 0b101101000101011011000101
 
 
+class NfcReader(Thread):
+    __INTERVAL = 0.2  # 待受の飯能インターバル秒
+    __TARGET_REQ_FELICA = nfc.clf.RemoteTarget('212F')
+    __TARGET_REQ_NFC = nfc.clf.RemoteTarget('106A')
+    __TARGET_SERVICE_CODE = 0x1A8B  # 学籍番号のサービスコード
+    cancel_flag = False
+    complete_flag = False
+
+    def run(self):
+        with nfc.ContactlessFrontend('usb') as clf:
+            while True:
+                if self.cancel_flag:
+                    break
+
+                res = clf.sense(self.__TARGET_REQ_NFC, self.__TARGET_REQ_FELICA, iteration=1, interval=self.__INTERVAL)
+                if not res is None:
+                    tag = nfc.tag.activate(clf, res)
+
+                    if tag.type == "Type3Tag":
+                        idm, pmm = tag.polling(system_code=0xfe00)
+                        tag.idm, tag.pmm, tag.sys = idm, pmm, 0xfe00
+                        sc = nfc.tag.tt3.ServiceCode(self.__TARGET_SERVICE_CODE >> 6, self.__TARGET_SERVICE_CODE & 0x3f)
+                        bc = nfc.tag.tt3.BlockCode(0)
+                        data = tag.read_without_encryption([sc], [bc])
+
+                        PayInfo.set_studentID(data[4:11].decode())
+                        self.complete_flag = True
+                        break
+
+
 class WindowManager(ScreenManager):
     pass
 
@@ -53,6 +86,7 @@ class LoginWindow(Screen):
             self.openErrorPop(ErrorInfo.E3)
         elif (result['storeId'] == str(self.usrID) and (result['password'] == str(self.usrPass))):
             PayInfo.set_storeID(self.usrID)
+            self.ids.login_id.readonly = True
             self.manager.current = 'customer'
         else:
             self.openErrorPop(ErrorInfo.E3)
@@ -71,11 +105,233 @@ class LoginWindow(Screen):
 
 
 class CustomerWindow(Screen):
-    def press_PaymentButton(self):
-        PayInfo.set_payType(PayType.PAYMENT)
+    id_dict = ['none','s_item','s_charge','s_signup']
+    color = ListProperty([[],[0.8, 0, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+    active_btn = 0
+
+    def on_enter(self):
+        self.ids.sm_cus.current = 's_item'
     
-    def press_ChargeButton(self):
-        PayInfo.set_payType(PayType.CHARGE)
+    def on_leave(self):
+        self.active_btn = 0
+        self.ids.sm_cus.current = "none"
+
+    def updateActiveBtn(self, sid):
+        for i in range(len(self.color)):
+            if i == int(sid):
+                self.color[i] = [0.8, 0, 0, 1]
+                self.changeScreen(i)
+                self.active_btn = i
+            else:
+                self.color[i] = [1, 1, 1, 1]
+    
+    def changeScreen(self, id):
+        if id != self.active_btn:
+            if id > self.active_btn:
+                self.ids.sm_cus.transition = SlideTransition(direction='left')
+                self.ids.sm_cus.current = self.id_dict[id]
+            else:
+                self.ids.sm_cus.transition = SlideTransition(direction='right')
+                self.ids.sm_cus.current = self.id_dict[id]
+
+
+class ItemSelectingScreen(Screen):
+    price_property = StringProperty('0')
+
+    def on_enter(self):
+        self.item_list = []
+        self.cart_list = {}
+
+        url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
+        req = UrlRequest(url, on_success=self.updateItemWidget)
+
+    def on_leave(self):
+        self.price_property = '0'
+
+        self.ids['items'].clear_widgets()
+        self.ids['cart'].clear_widgets()
+
+    def updateItemWidget(self, req, result):
+        cnt = 0
+        for item in result:
+            if item['onSale'] == 'TRUE':
+                self.item_list.append(item)
+
+                item_txt = str(cnt) + ". " + str(item['name']) + "\n ¥" + str(item['price'])
+                item_btn = Button(font_size=40, height=150, size_hint_y=None, text=item_txt, on_release=self.addCartList, background_color=(.3, .8, .9, 1))
+                self.ids['items'].add_widget(item_btn)
+                cnt += 1 
+
+    def addCartList(self, btn):
+        btn_product_id = self.item_list[int(btn.text[0])]['productId']
+        if btn_product_id in self.cart_list.keys():
+            self.cart_list[btn_product_id] += 1
+            self.updateCartWidget()
+        else:
+            self.cart_list[btn_product_id] = 1
+            self.updateCartWidget()
+        
+        self.price_property = str(int(self.price_property) + int(self.item_list[int(btn.text[0])]['price']))
+
+    def updateCartWidget(self):
+        self.ids['cart'].clear_widgets()
+
+        for item in self.item_list:
+            for key, num in self.cart_list.items():
+                if item['productId'] == key:
+                    cart_layout = BoxLayout(height=100, size_hint_y=None)
+                    cart_txt = str(item['name']) + '\n ¥' + str(item['price'])
+                    cart_lbl = Label(font_size=30, size_hint_x=0.8, text=cart_txt)
+                    num_lbl = Label(font_size=30, size_hint_x=0.2, text=str(num))
+                    cart_layout.add_widget(cart_lbl)
+                    cart_layout.add_widget(num_lbl)
+                    self.ids['cart'].add_widget(cart_layout)
+    
+    def pressEnterBtn(self):
+        product_list = []
+        for id, num in self.cart_list.items():
+            for i in range(num):
+                product_list.append(id)
+
+        PayInfo.set_payType(PayType.PAYMENT)
+        PayInfo.set_products(product_list)
+        PayInfo.set_payVal(int(self.price_property))
+
+        self.parent.transition = FallOutTransition()
+        self.parent.current = 's_nfc'
+    
+    def pressCancelBtn(self):
+        self.ids['cart'].clear_widgets()
+        self.cart_list = {}
+        self.price_property = '0'
+
+
+class ChargeSelectingScreen(Screen):
+    price_property = StringProperty('0')
+
+    def on_leave(self):
+        self.price_property = '0'
+
+    def pressPriceBtn(self, s_price):
+        self.price_property = str(int(self.price_property) + int(s_price))
+    
+    def pressEnterBtn(self):
+        if not self.price_property == '0':
+            PayInfo.set_payType(PayType.CHARGE)
+            PayInfo.set_payVal(int(self.price_property))
+            self.parent.transition = FallOutTransition()
+            self.parent.current = 's_nfc'
+        
+
+    def pressCancelBtn(self):
+        self.price_property = '0'
+
+
+class SignupScreen(Screen):
+    source = './img/nfc_touch.gif'
+
+    def on_enter(self):
+        self.pay_type = PayInfo.get_payType()
+
+        self.nfc = NfcReader()
+        self.nfc.setDaemon(True)
+        self.nfc.start()
+
+        self.observer = Thread(target=self.observeNfcReader, )
+        self.observer.setDaemon(True)
+        self.observer.start()
+    
+    def on_leave(self):
+        self.nfc.cancel_flag = True
+        self.ids.nfc_inf.text = "学生証をリーダにタッチしてください"
+        self.ids.sign_img.source = "./img/nfc_touch.gif"
+
+    def observeNfcReader(self):
+        while True:
+            if self.nfc.complete_flag:
+                sudentID = PayInfo.get_studentID()
+                cc = int(sudentID) ^ CryptoProtocol.QR_XOR_KEY
+                qrImg = qrcode.make(str(cc))
+                qrImg.save('studentQR.png')
+
+                self.ids.nfc_inf.text = "スマホアプリでこのQRコードを読み撮ってください"
+                self.source = "studentQR.png"
+                self.displayQrImage()
+                break
+    
+    @mainthread
+    def displayQrImage(self):
+        self.ids.sign_img.source = self.source
+
+class NfcScreen(Screen):
+    source = StringProperty("./img/nfc_touch.gif")
+
+    def on_enter(self):
+        self.pay_type = PayInfo.get_payType()
+
+        self.nfc = NfcReader()
+        self.nfc.setDaemon(True)
+        self.nfc.start()
+
+        self.observer = Thread(target=self.observeNfcReader, )
+        self.observer.setDaemon(True)
+        self.observer.start()
+
+    def on_leave(self):
+        self.nfc.cancel_flag = True
+        PayInfo.clearInfo()
+        self.ids.nfc_inf.text = "学生証をリーダにタッチしてください"
+        self.ids.nfc_b.text = "取消"
+        self.source = "./img/nfc_touch.gif"
+
+        
+    def pressCancelBtn(self):
+        self.nfc.cancel_flag = True
+
+        if self.pay_type == PayType.PAYMENT:
+            self.parent.current = 's_item'
+        elif self.pay_type == PayType.CHARGE:
+            self.parent.current = 's_charge'
+    
+    def observeNfcReader(self):
+        while True:
+            if self.nfc.complete_flag:
+                self.ids.nfc_inf.text = "決済情報をデータベースに送信中．．．"
+                
+                url = DatabaseInfo.HTTP + "/transaction"
+                if self.pay_type == PayType.PAYMENT:
+                    url += "/payment"
+                    self.rb = json.dumps(PayInfo.get_DictPaymentInfo())
+                elif self.pay_type == PayType.CHARGE:
+                    url += "/charge"
+                    self.rb = json.dumps(PayInfo.get_DictChargeInfo())
+                    
+                req = UrlRequest(url, on_success=self.successRequest, on_failure=self.failRequest, req_body=self.rb, req_headers=DatabaseInfo.HEADER)
+                break
+                
+            if self.nfc.cancel_flag:
+                break
+    
+    def successRequest(self, req, result):
+        if result:
+            self.ids.nfc_b.text = "OK"
+            if self.pay_type == PayType.PAYMENT:
+                self.ids.nfc_inf.text = "支払いが完了しました"
+                self.source = "./img/pay.png"
+            if self.pay_type == PayType.CHARGE:
+                self.ids.nfc_inf.text = "チャージが完了しました"
+                self.source = "./img/charge.png"
+        else:
+            print("Error: The payment could not be made due to insufficient balance.")
+            self.failRequest(req, result)
+
+    def failRequest(self, req, result):
+        self.ids.nfc_inf.text = "エラーが発生しました．"
+        self.ids.nfc_b.text = "戻る"
+        self.source = "./img/error.png"
+
+        print(result)
+        print("Error: Http communication was not established.")
 
 
 class StoreWindow(Screen):
@@ -117,154 +373,8 @@ class SalesWindow(Screen):
             cnt += 1
 
 
-class CalculatorWindow(Screen):
-    clear_bool = True
-    total = 0
-    
-    def on_leave(self):
-        self.total = 0
-        self.ids["display_input"].text = '(金額を入力)'
-
-    def print_number(self, val):
-        if self.clear_bool:
-            self.clear_bool = False
-
-        self.total += int(val)
-        self.ids["display_input"].text = str(self.total) + "円"
-
-    def clear_display(self):
-        self.total = 0
-        self.ids["display_input"].text = "(金額を入力)"
-        self.clear_bool = True
-
-    def press_enter(self):
-        if not self.clear_bool:
-            money_val = int(self.total)
-            PayInfo.set_payVal(money_val)
-            self.manager.current = 'nfc'
-
-
-class SelectProductWindow(Screen):
-    def on_enter(self):
-        self.sumPrice = 0
-        self.itemList = []
-        self.selectItem = []
-
-        url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
-        self.req = UrlRequest(url, on_success=self.addText)
-
-    def on_leave(self):
-        self.ids['products'].clear_widgets()
-        self.ids['s_price'].text = '小計：0円'
-
-
-    def addText(self, req, result):
-        cnt = 0
-        for i in result:
-            if i['onSale'] == 'TRUE':
-                self.itemList.append(i)
-                self.ids['products'].add_widget(Button(font_size=20, height=300, width=300, size_hint=(None, None), text=(str(cnt)+"："+str(i['name']+"\n"+str(i['price'])+"円")), on_release=self.updatePrice))
-                cnt += 1
-
-    def updatePrice(self, btn):
-        self.selectItem.append(self.itemList[int(btn.text[0])]['productId'])
-        self.sumPrice += self.itemList[int(btn.text[0])]['price']
-        self.ids['s_price'].text = "小計：" + str(self.sumPrice) + "円"
-    
-    def pressEnter(self):
-        PayInfo.set_payVal(self.sumPrice)
-        PayInfo.set_products(self.selectItem)
-        self.manager.current = 'nfc'
-
-
-class NFCWindow(Screen):
-    isComplete = False
-
-    def on_enter(self):
-        self.isComplete = False
-
-        if self.getStudentID():
-            self.ids["nfc_label"].text = "決済情報をデータベースに送信しています．．．"
-            print("支払いの種類: ", PayInfo.get_payType(), "\n金額: ", PayInfo.get_payVal(), "\n学籍番号: ", PayInfo.get_studentID())
-            
-            self.URL = DatabaseInfo.HTTP + "/transaction"
-            if PayInfo.get_payType() == PayType.PAYMENT:
-                self.URL += "/payment"
-                self.rb = json.dumps(PayInfo.get_DictPaymentInfo())
-            elif PayInfo.get_payType() == PayType.CHARGE:
-                self.URL += "/charge"
-                self.rb = json.dumps(PayInfo.get_DictChargeInfo())
-            else:
-                print("error: The payType is not correct.")
-                self.openErrorPop(ErrorInfo.E0)
-        
-            self.req = UrlRequest(self.URL, on_success=self.successRequest, on_failure=self.failRecuest, req_body=self.rb,req_headers=DatabaseInfo.HEADER)
-        else:
-            print("error:The ID card held over the card reader is not a student ID card")
-            self.openErrorPop(ErrorInfo.E2)
-
-    def on_leave(self):
-        self.ids["nfc_label"].text = '学生証をリーダにタッチしてください'
-
-    def getStudentID(self):
-        nfc_connection()
-        if (PayInfo.get_studentID() != None):
-            return True
-        else:
-            return False
-    
-    def successRequest(self, req, result):
-        if result == True:
-            self.ids["nfc_label"].text = "決済が完了しました．"
-            self.isComplete = True
-        else:
-            print("error:The payment could not be made due to insufficient balance.")
-            self.openErrorPop(ErrorInfo.E1)
-    
-    def failRecuest(self, req, result):
-        print("An invalid ID card has been detected.")
-        self.openErrorPop(ErrorInfo.E2)
-
-    def openErrorPop(self, error):
-        content = ErrorPop(closePopup=self.closePopup)
-        self.popup = Popup(title='Error', content=content, size_hint=(0.5, 0.5), auto_dismiss=False)
-        self.popup.open()
-    
-    def closePopup(self):
-        self.popup.dismiss()
-        self.manager.current = 'customer'
-    
-    def backWindow(self):
-        if self.isComplete:
-            PayInfo.clearInfo()
-            self.manager.current = 'customer'
-
-        return True
-
-
 class ErrorPop(BoxLayout):
     closePopup = ObjectProperty(None)
-
-
-class QRWindow(Screen):
-    def on_enter(self):
-        nfc_connection()
-        self.genQrcode()
-    
-    def on_leave(self):
-        self.ids['qr_label'].text = '学生証をタッチしてください'
-        self.ids['qr_png'].source = ''
-    
-    def genQrcode(self):
-        sudentID = PayInfo.get_studentID()
-        cc = int(sudentID) ^ CryptoProtocol.QR_XOR_KEY
-        print("   " + str(bin(int(sudentID))))
-        print(str(bin(CryptoProtocol.QR_XOR_KEY)))
-        print(str(bin(cc)))
-        qrImg = qrcode.make(str(cc))
-        qrImg.save('studentQR.png')
-        self.ids['qr_label'].text = 'KatsuPayスマホアプリで\nこのQRコードを読み撮ってください．'
-        self.ids['qr_png'].source = 'studentQR.png'
 
 
 class ProductEditWindow(Screen):
