@@ -358,6 +358,30 @@ WindowManager:
             on_release: root.sysExit()
 
 <SalesWindow>:
+    # name: 'sales'
+    # BoxLayout:
+    #     orientation: 'vertical'
+    #     BoxLayout:
+    #         size_hint_y: 0.2
+    #         Label:
+    #             size_hint_x: 0.7
+    #             text:""
+    #         Button:
+    #             size_hint_y:0.3
+    #             text: "戻る"
+    #             on_release:
+    #                 root.manager.current = "store"
+    #     BoxLayout:
+    #         size_hint_y: 0.8
+    #         Button:
+    #             pos_hint: {"x":0.5, "y":0.25}
+    #             text: "売上金額の確認"
+    #         Button:
+    #             pos_hint: {"x":0.5, "y":0.75}
+    #             text: "取引情報の確認"
+
+
+
     name: 'sales'
     BoxLayout:
         orientation: 'vertical'
@@ -376,7 +400,7 @@ WindowManager:
             size_hint_y: 0.2
             text: '売上金額：受信中．．．'        
         BoxLayout:
-            size_hint_y: 0.6
+            size_hint_y: 0.4
             ScrollView:
                 size_hint_x: 0.3
                 BoxLayout:
@@ -384,6 +408,17 @@ WindowManager:
                     id: tran
                     size_hint_y: None
                     height: self.minimum_height
+        BoxLayout:
+            size_hint_y:0.2
+            Button:
+                size_hint_x: 0.5
+                text: "次の10件"
+                on_release: root.add_index()
+            Button:
+                size_hint_x: 0.5
+                text: "前の10件"
+                on_release: root.minus_index()
+            
 
 
 <CalculatorWindow>:
