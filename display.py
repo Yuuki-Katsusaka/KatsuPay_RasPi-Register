@@ -352,53 +352,56 @@ class StoreWindow(Screen):
 
 
 class SalesWindow(Screen):
-    def on_enter(self):
+    p_s_num = 0
+    def on_enter(self): 
         self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
-        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/0/10"
+        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
 
         self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
-        self.tReq = UrlRequest(self.transURL, on_success=self.printTransaction)
+        self.tReq = UrlRequest(self.transURL, on_success=self.func)
+    
+    def UpdateTransaction(self):
+        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
+        self.tReq = UrlRequest(self.transURL, on_success=self.func)
+
+    def on_leave(self):
+        self.ids["tran"].clear_widgets()
 
     def printSalesPrice(self, req, result):
-        print("[LOG]" + str(result))
+        self.ids["sales_price"].text = "売上金額：" + str(result)
     
-    def printTransaction(self, req, result):
-        # result = map(lambda x : x + "¥n", str(result))
-        print("[LOG]" + str(result))
-
-
-
-    # def on_enter(self):
-    #     self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
-    #     self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID())
-
-    #     self.pReq = UrlRequest(self.priceURL, on_success=self.printSelesPrice)
-    #     self.tReq = UrlRequest(self.transURL, on_success=self.func)
-
-    # def on_leave(self):
-    #     self.ids["tran"].clear_widgets()
-
-    # def printSelesPrice(self, req, result):
-    #     self.ids["sales_price"].text = "売上金額：" + str(result)
+    def func(self, req, result):
+        cnt = 1 + self.p_s_num
+        for plist in result:
+            self.txt = ""
+            if plist['charge']:
+                self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] + "\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
+            else:
+                self.txt = "--- 取引情報(決済)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId']) + "\n店舗ID：" + str(plist['storeId']) + "\n取引時間：" + str(plist['transactionTime']) + "\n金額：" + str(plist['price']) + "\n購入品：\n"
+                cnt2 = 0
+                for pInfList in plist['productInfoList']:
+                    self.txt += str(pInfList)
+                    if cnt2 % 3 == 0:
+                        self.txt += "\n"
+                    else:
+                        self.txt += ", "
+                    cnt += 1
+            self.ids["tran"].add_widget(Label(font_size=20, height=300, size_hint_y=None, text=self.txt))
+            cnt += 1
     
-    # def func(self, req, result):
-    #     cnt = 1
-    #     for plist in result:
-    #         self.txt = ""
-    #         if plist['charge']:
-    #             self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] + "\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
-    #         else:
-    #             self.txt = "--- 取引情報(決済)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId']) + "\n店舗ID：" + str(plist['storeId']) + "\n取引時間：" + str(plist['transactionTime']) + "\n金額：" + str(plist['price']) + "\n購入品：\n"
-    #             cnt2 = 0
-    #             for pInfList in plist['productInfoList']:
-    #                 self.txt += str(pInfList)
-    #                 if cnt2 % 3 == 0:
-    #                     self.txt += "\n"
-    #                 else:
-    #                     self.txt += ", "
-    #                 cnt += 1
-    #         self.ids["tran"].add_widget(Label(font_size=20, height=300, size_hint_y=None, text=self.txt))
-    #         cnt += 1
+    def add_index(self):
+        self.p_s_num += 10
+        print("[LOG]" + str(self.p_s_num))
+        self.ids.tran.clear_widgets()
+        self.UpdateTransaction()
+    
+    def minus_index(self):
+        if self.p_s_num >= 10:
+            self.p_s_num -= 10
+            print("[LOG]" + str(self.p_s_num))
+            self.ids.tran.clear_widgets()
+            self.UpdateTransaction()
+        else: pass
 
 
 class ErrorPop(BoxLayout):
