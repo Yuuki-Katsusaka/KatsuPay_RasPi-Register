@@ -28,7 +28,7 @@ from ErrorInfo import ErrorInfo, ErrorMessage
 
 
 class DatabaseInfo():
-    IP_ADDRESS = "192.168.11.27"
+    IP_ADDRESS = "192.168.11.6"
     PORT = ":8080"
     HTTP = "http://" + IP_ADDRESS + PORT
     HEADER = {"Content-Type": "application/json"}
@@ -93,7 +93,8 @@ class LoginWindow(Screen):
                 self.ids.login_id.readonly = True
                 self.ids['login_lay'].add_widget(Button(font_size=30, text='戻る', on_release=self.addButton))
                 self.ids.login_pass.text = ''
-                self.manager.current = 'customer'
+                # self.manager.current = 'customer'
+                self.manager.current = 'store' # デバッグ用
             else:
                 self.ids.login_pass.text = ''
                 self.manager.current = 'store'
@@ -353,24 +354,39 @@ class StoreWindow(Screen):
 
 class SalesWindow(Screen):
     p_s_num = 0
-    def on_enter(self): 
-        self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
-        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
+    return_flag = 1
+    # def on_enter(self): 
+    #     self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
+    #     self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
 
+    #     self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
+    #     self.tReq = UrlRequest(self.transURL, on_success=self.func)
+
+    def CheckSalesPrice(self):
+        self.return_flag = 2
+        self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
         self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
-        self.tReq = UrlRequest(self.transURL, on_success=self.func)
-    
+        self.ids.display.text = "売上金額の確認"
+        
+
     def UpdateTransaction(self):
+        self.return_flag = 3
         self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
-        self.tReq = UrlRequest(self.transURL, on_success=self.func)
+        self.tReq = UrlRequest(self.transURL, on_success=self.printTransuction)
+        self.ids.display.text = "取引情報の確認"
 
     def on_leave(self):
         self.ids["tran"].clear_widgets()
 
     def printSalesPrice(self, req, result):
-        self.ids["sales_price"].text = "売上金額：" + str(result)
+        self.ids.sm.current = "sc2"
+        self.ids.sales_price.text = "売上金額：" + str(result)
+        # self.ids.sales_or_tran.clear_widgets()
+        # l_salesprice = Label(text = "売上金額：" + str(result), pos_hint = {"x":0.2, "top":0.7}, size_hint = (0.5, 0.5))
+        # self.ids.sales_or_tran.add_widget(l_salesprice)
     
-    def func(self, req, result):
+    def printTransuction(self, req, result):
+        self.ids.sm.current = "sc3"
         cnt = 1 + self.p_s_num
         for plist in result:
             self.txt = ""
@@ -386,7 +402,7 @@ class SalesWindow(Screen):
                     else:
                         self.txt += ", "
                     cnt += 1
-            self.ids["tran"].add_widget(Label(font_size=20, height=300, size_hint_y=None, text=self.txt))
+            self.ids["tran"].add_widget(Label(font_size=20, height=200, size_hint_y=None, text=self.txt))
             cnt += 1
     
     def add_index(self):
@@ -402,6 +418,22 @@ class SalesWindow(Screen):
             self.ids.tran.clear_widgets()
             self.UpdateTransaction()
         else: pass
+
+    def b_return(self):
+        if self.return_flag == 1:
+            self.manager.current = "store"
+
+        elif self.return_flag == 2:
+            self.ids.sm.current = "sc1"
+            self.ids.display.text = "" 
+            self.return_flag = 1
+
+        else:
+            self.ids.sm.current = "sc1"
+            self.ids.tran.clear_widgets()
+            self.ids.display.text = "" 
+            self.return_flag = 1
+            self.p_s_num = 0
 
 
 class ErrorPop(BoxLayout):

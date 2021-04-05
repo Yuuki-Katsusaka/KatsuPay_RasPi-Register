@@ -80,7 +80,7 @@ WindowManager:
             KTextInput:
                 id: login_id
                 size_hint_x: 0.8
-                text: ''
+                text: '1820210'
                 input_filter: 'int'
         BoxLayout:
             orientation: 'horizontal'
@@ -90,7 +90,7 @@ WindowManager:
             KTextInput:
                 id: login_pass
                 size_hint_x: 0.8
-                text: ''
+                text: 'store6'
                 password: True
         BoxLayout:
             id: login_lay
@@ -358,66 +358,112 @@ WindowManager:
             on_release: root.sysExit()
 
 <SalesWindow>:
-    # name: 'sales'
-    # BoxLayout:
-    #     orientation: 'vertical'
-    #     BoxLayout:
-    #         size_hint_y: 0.2
-    #         Label:
-    #             size_hint_x: 0.7
-    #             text:""
-    #         Button:
-    #             size_hint_y:0.3
-    #             text: "戻る"
-    #             on_release:
-    #                 root.manager.current = "store"
-    #     BoxLayout:
-    #         size_hint_y: 0.8
-    #         Button:
-    #             pos_hint: {"x":0.5, "y":0.25}
-    #             text: "売上金額の確認"
-    #         Button:
-    #             pos_hint: {"x":0.5, "y":0.75}
-    #             text: "取引情報の確認"
-
-
-
     name: 'sales'
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
             size_hint_y: 0.2
             KLabel:
+                id: display
                 size_hint_x: 0.7
-                text: '売上の確認'
             KButton:
-                size_hint_x: 0.3
-                text: '戻る'
-                on_release: 
-                    root.manager.current = 'store'
-        KLabel:
-            id: sales_price
-            size_hint_y: 0.2
-            text: '売上金額：受信中．．．'        
-        BoxLayout:
-            size_hint_y: 0.4
-            ScrollView:
-                size_hint_x: 0.3
+                size_hint_x:0.3
+                text: "戻る"
+                on_release:
+                    root.b_return()
+                    # root.manager.current = "store"
+
+        ScreenManager:
+            canvas:
+                Color:
+                    rgb: 255, 0, 0
+            id: sm
+            # size_hint_y: 0.8
+            Screen:
+                name: "sc1"
+                FloatLayout:
+                    id: sales_or_tran
+                    size_hint_y: 0.8
+                    Button:
+                        size_hint: 0.2,0.2
+                        pos_hint: {"x":0.2, "top":0.7}
+                        text: "売上金額の確認"
+                        on_release: root.CheckSalesPrice()
+                    Button:
+                        size_hint: 0.2,0.2
+                        pos_hint: {"x":0.6, "top":0.7}
+                        text: "取引情報の確認"
+                        on_release: root.UpdateTransaction()
+            Screen:
+                name: "sc2"
+                FloatLayout:
+                    Label:
+                        id: sales_price
+                        pos_hint: {"x": 0.2, "top": 0.7}
+                        size_hint: 0.5, 0.5
+            Screen:
+                name: "sc3"
                 BoxLayout:
-                    orientation: 'vertical'
-                    id: tran
-                    size_hint_y: None
-                    height: self.minimum_height
-        BoxLayout:
-            size_hint_y:0.2
-            Button:
-                size_hint_x: 0.5
-                text: "次の10件"
-                on_release: root.add_index()
-            Button:
-                size_hint_x: 0.5
-                text: "前の10件"
-                on_release: root.minus_index()
+                    orientation: "vertical"
+                    size_hint_y: 0.8
+                    ScrollView:
+                        # size_hint_x: 1
+                        BoxLayout:
+                            orientation: 'vertical'
+                            id: tran
+                            size_hint_y: None
+                            height: self.minimum_height
+                    BoxLayout:
+                        size_hint_y:0.2
+                        Button:
+                            size_hint_x: 0.5
+                            text: "前の10件"
+                            on_release: root.minus_index()
+                        Button:
+                            size_hint_x: 0.5
+                            text: "次の10件"
+                            on_release: root.add_index()
+            
+                
+
+
+
+    # name: 'sales'
+    # BoxLayout:
+    #     orientation: 'vertical'
+    #     BoxLayout:
+    #         size_hint_y: 0.2
+    #         KLabel:
+    #             size_hint_x: 0.7
+    #             text: '売上の確認'
+    #         KButton:
+    #             size_hint_x: 0.3
+    #             text: '戻る'
+    #             on_release: 
+    #                 root.manager.current = 'store'
+    #     KLabel:
+    #         id: sales_price
+    #         size_hint_y: 0.2
+    #         text: '売上金額：受信中．．．'        
+    #     BoxLayout:
+    #         size_hint_y: 0.4
+    #         ScrollView:
+    #             size_hint_x: 0.3
+    #             BoxLayout:
+    #                 orientation: 'vertical'
+    #                 id: tran
+    #                 size_hint_y: None
+    #                 height: self.minimum_height
+    #     BoxLayout:
+    #         size_hint_y:0.2
+    #         Button:
+    #             size_hint_x: 0.5
+    #             text: "次の10件"
+    #             on_release: root.add_index()
+    #         Button:
+    #             size_hint_x: 0.5
+    #             text: "前の10件"
+    #             on_release: root.minus_index()
             
 
 
