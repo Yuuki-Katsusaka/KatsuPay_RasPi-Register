@@ -352,11 +352,9 @@ class StoreWindow(Screen):
         sys.exit(0)
 
 class TempButton(Button):
-    # id = "-1"
     def __init__ (self, t_num, text, on_release, size_hint_y, font_size, height):
         super(TempButton, self).__init__(text = text, on_release = on_release, size_hint_y = size_hint_y, font_size = font_size, height = height)
         self.t_num = t_num
-    #     Button(text = "test", on_release = lambda x: self.GetTransuction(t_num))
         
 
 
@@ -372,7 +370,7 @@ class SalesWindow(Screen):
     def on_leave(self):
         self.ids.tran.clear_widgets()
         self.ids.tran_num.clear_widgets()
-        
+
     def printSalesPrice(self, req, result):
         self.ids.sales_price.text = "売上金額：" + str(result)
 
@@ -391,7 +389,6 @@ class SalesWindow(Screen):
                     b_tran_num = TempButton(text = str(t_num + 1) + "〜" + str(t_num + 10), height = 100, size_hint_y = None, font_size = 30, on_release = self.GetTransuction, t_num = t_num)
                 else:
                     b_tran_num = TempButton(text = str(t_num + 1) + "〜" + str(result), height = 100, size_hint_y = None, font_size = 30, on_release = self.GetTransuction, t_num = t_num)
-                    print(t_num)
                 self.ids.tran_num.add_widget(b_tran_num)
                 t_num += 10
 
