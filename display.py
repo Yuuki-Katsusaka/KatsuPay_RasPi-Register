@@ -351,43 +351,57 @@ class StoreWindow(Screen):
     def sysExit(self):
         sys.exit(0)
 
+class TempButton(Button):
+    # id = "-1"
+    def __init__ (self, t_num, text, on_release, size_hint_y, font_size, height):
+        super(TempButton, self).__init__(text = text, on_release = on_release, size_hint_y = size_hint_y, font_size = font_size, height = height)
+        self.t_num = t_num
+    #     Button(text = "test", on_release = lambda x: self.GetTransuction(t_num))
+        
+
+
 
 class SalesWindow(Screen):
     p_s_num = 0
     return_flag = 1
-    # def on_enter(self): 
-    #     self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
+    def on_enter(self): 
+        self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
+        self.tran_numURL = DatabaseInfo.HTTP + "/transaction/size/customer/" + str(PayInfo.get_storeID())
     #     self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
 
-    #     self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
+        self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
+        self.tnReq = UrlRequest(self.tran_numURL, on_success = self.AddTranButton)
     #     self.tReq = UrlRequest(self.transURL, on_success=self.func)
 
-    def CheckSalesPrice(self):
-        self.return_flag = 2
-        self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
-        self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
-        self.ids.display.text = "売上金額の確認"
+    # def CheckSalesPrice(self):
+    #     self.return_flag = 2
+    #     self.priceURL = DatabaseInfo.HTTP + "/account/sales/" +  str(PayInfo.get_storeID())
+    #     self.pReq = UrlRequest(self.priceURL, on_success=self.printSalesPrice)
+    #     self.ids.display.text = "売上金額の確認"
         
+    def AddTranButton(self, req, result):
+        t_num = 1
+        num = int(result / 10)
+        if num == 0:
+            b_tran_num = TempButton(text = str(t_num) + "〜" + str(result), height = 100, size_hint_y = None, font_size = 30, on_release = self.GetTransuction, t_num = t_num)
+            self.ids.tran_num.add_widget(b_tran_num)
+        else:
+            for _ in range(num + 1):
+                if t_num <= num * 10:
+                    b_tran_num = TempButton(text = str(t_num) + "〜" + str(t_num + 9), height = 100, size_hint_y = None, font_size = 30, on_release = self.GetTransuction, t_num = t_num)
+                else:
+                    b_tran_num = TempButton(text = str(t_num) + "〜" + str(result), height = 100, size_hint_y = None, font_size = 30, on_release = self.GetTransuction, t_num = t_num)
+                self.ids.tran_num.add_widget(b_tran_num)
+                t_num += 10
 
-    def UpdateTransaction(self):
-        self.return_flag = 3
-        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
-        self.tReq = UrlRequest(self.transURL, on_success=self.printTransuction)
-        self.ids.display.text = "取引情報の確認"
+    def GetTransuction(self, ins):
+        self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(ins.t_num) + "/10"
+        self.tReq = UrlRequest(self.transURL, on_success=self.DisplayTransaction)
 
-    def on_leave(self):
-        self.ids["tran"].clear_widgets()
 
-    def printSalesPrice(self, req, result):
-        self.ids.sm.current = "sc2"
-        self.ids.sales_price.text = "売上金額：" + str(result)
-        # self.ids.sales_or_tran.clear_widgets()
-        # l_salesprice = Label(text = "売上金額：" + str(result), pos_hint = {"x":0.2, "top":0.7}, size_hint = (0.5, 0.5))
-        # self.ids.sales_or_tran.add_widget(l_salesprice)
-    
-    def printTransuction(self, req, result):
-        self.ids.sm.current = "sc3"
-        cnt = 1 + self.p_s_num
+    def DisplayTransaction(self, req, result):
+        self.ids.tran.clear_widgets()
+        cnt = 1
         for plist in result:
             self.txt = ""
             if plist['charge']:
@@ -404,36 +418,78 @@ class SalesWindow(Screen):
                     cnt += 1
             self.ids["tran"].add_widget(Label(font_size=20, height=200, size_hint_y=None, text=self.txt))
             cnt += 1
-    
-    def add_index(self):
-        self.p_s_num += 10
-        print("[LOG]" + str(self.p_s_num))
+
+
+
+
+
+    # def UpdateTransaction(self):
+    #     self.return_flag = 3
+    #     self.transURL = DatabaseInfo.HTTP + "/transaction/store/" + str(PayInfo.get_storeID()) + "/" + str(self.p_s_num) + "/10"
+    #     self.tReq = UrlRequest(self.transURL, on_success=self.printTransuction)
+    #     self.ids.display.text = "取引情報の確認"
+
+    def on_leave(self):
         self.ids.tran.clear_widgets()
-        self.UpdateTransaction()
-    
-    def minus_index(self):
-        if self.p_s_num >= 10:
-            self.p_s_num -= 10
-            print("[LOG]" + str(self.p_s_num))
-            self.ids.tran.clear_widgets()
-            self.UpdateTransaction()
-        else: pass
+        self.ids.tran_num.clear_widgets()
+
+    def printSalesPrice(self, req, result):
+        # self.ids.sm.current = "sc2"
+        self.ids.sales_price.text = "売上金額：" + str(result)
 
     def b_return(self):
-        if self.return_flag == 1:
-            self.manager.current = "store"
+        self.manager.current = "store"
 
-        elif self.return_flag == 2:
-            self.ids.sm.current = "sc1"
-            self.ids.display.text = "" 
-            self.return_flag = 1
+    
+    # def printTransuction(self, req, result):
+    #     # self.ids.sm.current = "sc3"
+    #     cnt = 1 + self.p_s_num
+    #     for plist in result:
+    #         self.txt = ""
+    #         if plist['charge']:
+    #             self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] + "\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
+    #         else:
+    #             self.txt = "--- 取引情報(決済)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId']) + "\n店舗ID：" + str(plist['storeId']) + "\n取引時間：" + str(plist['transactionTime']) + "\n金額：" + str(plist['price']) + "\n購入品：\n"
+    #             cnt2 = 0
+    #             for pInfList in plist['productInfoList']:
+    #                 self.txt += str(pInfList)
+    #                 if cnt2 % 3 == 0:
+    #                     self.txt += "\n"
+    #                 else:
+    #                     self.txt += ", "
+    #                 cnt += 1
+    #         self.ids["tran"].add_widget(Label(font_size=20, height=200, size_hint_y=None, text=self.txt))
+    #         cnt += 1
+    
+    # def add_index(self):
+    #     self.p_s_num += 10
+    #     print("[LOG]" + str(self.p_s_num))
+    #     self.ids.tran.clear_widgets()
+    #     self.UpdateTransaction()
+    
+    # def minus_index(self):
+    #     if self.p_s_num >= 10:
+    #         self.p_s_num -= 10
+    #         print("[LOG]" + str(self.p_s_num))
+    #         self.ids.tran.clear_widgets()
+    #         self.UpdateTransaction()
+    #     else: pass
 
-        else:
-            self.ids.sm.current = "sc1"
-            self.ids.tran.clear_widgets()
-            self.ids.display.text = "" 
-            self.return_flag = 1
-            self.p_s_num = 0
+    # def b_return(self):
+    #     if self.return_flag == 1:
+    #         self.manager.current = "store"
+
+    #     elif self.return_flag == 2:
+    #         self.ids.sm.current = "sc1"
+    #         self.ids.display.text = "" 
+    #         self.return_flag = 1
+
+    #     else:
+    #         self.ids.sm.current = "sc1"
+    #         self.ids.tran.clear_widgets()
+    #         self.ids.display.text = "" 
+    #         self.return_flag = 1
+    #         self.p_s_num = 0
 
 
 class ErrorPop(BoxLayout):
