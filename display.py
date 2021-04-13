@@ -404,7 +404,7 @@ class SalesWindow(Screen):
         for plist in result:
             self.txt = ""
             if plist['charge']:
-                self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] + "\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
+                self.txt = "--- 取引情報(チャージ)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId'] + "\n店舗ID：" + str(plist['storeId'] +"\n取引時間：" + str(plist['transactionTime'] + "\n金額：" + str(plist['price']))))
             else:
                 self.txt = "--- 取引情報(決済)" + str(cnt) + " ---\n" + "消費者ID：" + str(plist['customerId']) + "\n店舗ID：" + str(plist['storeId']) + "\n取引時間：" + str(plist['transactionTime']) + "\n金額：" + str(plist['price']) + "\n購入品：\n"
                 cnt2 = 0
