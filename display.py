@@ -28,7 +28,7 @@ from ErrorInfo import ErrorInfo, ErrorMessage
 
 
 class DatabaseInfo():
-    IP_ADDRESS = "192.168.11.6"
+    IP_ADDRESS = "192.168.11.21"
     PORT = ":8080"
     HTTP = "http://" + IP_ADDRESS + PORT
     HEADER = {"Content-Type": "application/json"}
