@@ -170,7 +170,7 @@ class ItemSelectingScreen(Screen):
                 self.item_list.append(item)
 
                 item_txt = str(cnt) + ". " + str(item['name']) + "\n ¥" + str(item['price'])
-                item_btn = Button(font_size=40, height=150, size_hint_y=None, text=item_txt, on_release=self.addCartList, background_color=(.3, .8, .9, 1))
+                item_btn = Button(font_size=40, height=150, text_size=[self.size[0]/2, self.size[1]], halign='left', valign='middle', size_hint_y=None, text=item_txt, on_release=self.addCartList, background_color=(.3, .8, .9, 1))
                 self.ids['items'].add_widget(item_btn)
                 cnt += 1 
 
