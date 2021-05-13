@@ -193,7 +193,7 @@ class ItemSelectingScreen(Screen):
                 if item['productId'] == key:
                     cart_layout = BoxLayout(height=100, size_hint_y=None)
                     cart_txt = str(item['name']) + '\n ¥' + str(item['price'])
-                    cart_lbl = Label(font_size=30, size_hint_x=0.8, text=cart_txt)
+                    cart_lbl = Label(font_size=30, size_hint_x=0.8, text_size=[self.size[0]/4, self.size[1]], halign='left', valign='middle', text=cart_txt)
                     num_lbl = Label(font_size=30, size_hint_x=0.2, text=str(num))
                     cart_layout.add_widget(cart_lbl)
                     cart_layout.add_widget(num_lbl)
@@ -326,16 +326,45 @@ class NfcScreen(Screen):
     
     def successRequest(self, req, result):
         if result:
-            self.ids.nfc_b.text = "OK"
-            if self.pay_type == PayType.PAYMENT:
-                self.ids.nfc_inf.text = "支払いが完了しました"
-                self.source = "./img/pay.png"
-            if self.pay_type == PayType.CHARGE:
-                self.ids.nfc_inf.text = "チャージが完了しました"
-                self.source = "./img/charge.png"
+            scurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
+            screq = UrlRequest(scurl, on_success = self.PrintBalance, on_failure = self.failRequest)
+
+
+            # self.ids.nfc_b.text = "OK"
+            # if self.pay_type == PayType.PAYMENT:
+            #     self.ids.nfc_inf.text = "支払いが完了しました"
+            #     self.source = "./img/pay.png"
+            # if self.pay_type == PayType.CHARGE:
+            #     self.ids.nfc_inf.text = "チャージが完了しました"
+            #     self.source = "./img/charge.png"
         else:
             print("Error: The payment could not be made due to insufficient balance.")
-            self.failRequest(req, result)
+            self.pfailRequest(req, result)
+
+    def PrintBalance(self, req, result):
+        self.ids.nfc_b.text = "OK"
+        if self.pay_type == PayType.PAYMENT:
+            self.ids.nfc_inf.text = "支払いが完了しました 残高:" + str(result)
+            self.source = "./img/pay.png"
+        if self.pay_type == PayType.CHARGE:
+            self.ids.nfc_inf.text = "チャージが完了しました 残高:" + str(result)
+            self.source = "./img/charge.png"
+
+
+    def pfailRequest(self, req, result):
+        erurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
+        erreq = UrlRequest(erurl, on_success = self.PrintpError, on_failure = self.failRequest)
+
+    def PrintpError(self, req, result):
+        
+        self.ids.nfc_inf.text = "残高が足りません 残高:" + str(result)
+        self.ids.nfc_b.text = "戻る"
+        self.source = "./img/error.png"
+
+        print(result)
+        print("Error: Http communication was not established.")   
+
+
 
     def failRequest(self, req, result):
         self.ids.nfc_inf.text = "エラーが発生しました．"
