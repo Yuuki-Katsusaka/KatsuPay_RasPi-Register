@@ -445,6 +445,15 @@ WindowManager:
             text: 'メニューに戻る'
             on_release: root.closePopup()
 
+<ItemErrorPop>:
+    orientation: 'vertical'
+    KLabel:
+        text: '商品が選択されていません.'
+    BoxLayout:
+        KButton:
+            text: '閉じる'
+            on_release: root.CloseErrorPop()
+
 
 <ProductEditWindow>:
     name: 'p_edit'

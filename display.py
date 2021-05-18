@@ -153,6 +153,7 @@ class ItemSelectingScreen(Screen):
     def on_enter(self):
         self.item_list = []
         self.cart_list = {}
+        self.cart_flag = 0
 
         url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
         req = UrlRequest(url, on_success=self.updateItemWidget)
@@ -176,6 +177,7 @@ class ItemSelectingScreen(Screen):
 
     def addCartList(self, btn):
         btn_product_id = self.item_list[int(btn.text[0])]['productId']
+        self.cart_flag += 1
         if btn_product_id in self.cart_list.keys():
             self.cart_list[btn_product_id] += 1
             self.updateCartWidget()
@@ -200,23 +202,34 @@ class ItemSelectingScreen(Screen):
                     self.ids['cart'].add_widget(cart_layout)
     
     def pressEnterBtn(self):
-        product_list = []
-        for id, num in self.cart_list.items():
-            for i in range(num):
-                product_list.append(id)
+        if self.cart_flag > 0:
+            product_list = []
+            for id, num in self.cart_list.items():
+                for i in range(num):
+                    product_list.append(id)
 
-        PayInfo.set_payType(PayType.PAYMENT)
-        PayInfo.set_products(product_list)
-        PayInfo.set_payVal(int(self.price_property))
+            PayInfo.set_payType(PayType.PAYMENT)
+            PayInfo.set_products(product_list)
+            PayInfo.set_payVal(int(self.price_property))
 
-        self.parent.transition = FallOutTransition()
-        self.parent.current = 's_nfc'
-    
+            self.parent.transition = FallOutTransition()
+            self.parent.current = 's_nfc'
+        else:
+            self.OpenErrorPop()
+        
     def pressCancelBtn(self):
         self.ids['cart'].clear_widgets()
         self.cart_list = {}
         self.price_property = '0'
-
+        self.cart_flag = 0
+    
+    def OpenErrorPop(self):
+        content = ItemErrorPop(CloseErrorPop = self.CloseErrorPop)
+        self.popup = Popup(title = "Error", content = content, size_hint = (0.5, 0.5), auto_dismiss = False)
+        self.popup.open()
+    
+    def CloseErrorPop(self):
+        self.popup.dismiss()
 
 class ChargeSelectingScreen(Screen):
     price_property = StringProperty('0')
@@ -416,6 +429,9 @@ class SalesWindow(Screen):
 
 class ErrorPop(BoxLayout):
     closePopup = ObjectProperty(None)
+
+class ItemErrorPop(BoxLayout):
+    CloseErrorPop = ObjectProperty(None)
 
 
 class ProductEditWindow(Screen):
