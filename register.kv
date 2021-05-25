@@ -80,7 +80,7 @@ WindowManager:
             KTextInput:
                 id: login_id
                 size_hint_x: 0.8
-                text: ''
+                text: '2066005'
                 input_filter: 'int'
         BoxLayout:
             orientation: 'horizontal'
@@ -90,7 +90,7 @@ WindowManager:
             KTextInput:
                 id: login_pass
                 size_hint_x: 0.8
-                text: ''
+                text: 'yuukikatsu1027'
                 password: True
         BoxLayout:
             id: login_lay
@@ -302,6 +302,7 @@ WindowManager:
                 # allow_strech: True
 
 <NfcScreen>:
+    name: "nfc_sc"
     BoxLayout:
         orientation: 'vertical'
         canvas.before:
@@ -322,6 +323,7 @@ WindowManager:
             anim_delay: 1
             allow_strech: True
         AnchorLayout:
+            id: anchor
             size_hint_y: 0.4
             anchor_x: 'center'
             anchor_y: 'center'
@@ -330,6 +332,75 @@ WindowManager:
                 size_hint: 0.5,0.5
                 text: '取消'
                 on_release: root.pressCancelBtn()
+
+<SuccessScreen>:
+    name: "suc_sc"
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        InfoLabel:
+            id: suc_inf
+            size_hint_y: 0.1
+        Image:
+            id: nfc_img
+            size_hint_y: 0.5
+            source: root.source
+            anim_delay: 1
+            allow_strech: True
+        AnchorLayout:
+            id: anchor
+            size_hint_y: 0.4
+            anchor_x: 'center'
+            anchor_y: 'center'
+            SelectButton:
+                id: nfc_b
+                size_hint: 0.5,0.5
+                text: 'OK'
+                on_release: root.pressCancelBtn()
+
+
+<FailScreen>:
+    name: "fail_sc"
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        InfoLabel:
+            id: fail_inf
+            size_hint_y: 0.1
+        Image:
+            id: nfc_img
+            size_hint_y: 0.5
+            source: root.source
+            anim_delay: 1
+            allow_strech: True
+        AnchorLayout:
+            id: anchor
+            size_hint_y: 0.4
+            anchor_x: 'center'
+            anchor_y: 'center'
+            BoxLayout:
+                orientation: "vertical"   
+                SelectButton:
+                    id: fail_b
+                    size_hint: 0.5,0.5
+                    text: '戻る'
+                    on_release: root.pressCancelBtn()
+                SelectButton:
+                    size_hint: 0.5,0.5
+                    text: "チャージ"
+                    on_release: root.pressChargeBtn()
 
 
 <StoreWindow>:

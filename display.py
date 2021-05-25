@@ -19,6 +19,7 @@ from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.network.urlrequest import UrlRequest
+from kivy.uix.anchorlayout import AnchorLayout
 Window.size = (1024, 600)
 Window.fullscreen = True
 
@@ -317,7 +318,7 @@ class NfcScreen(Screen):
             self.parent.current = 's_item'
         elif self.pay_type == PayType.CHARGE:
             self.parent.current = 's_charge'
-    
+   
     def observeNfcReader(self):
         while True:
             if self.nfc.complete_flag:
@@ -342,50 +343,69 @@ class NfcScreen(Screen):
             scurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
             screq = UrlRequest(scurl, on_success = self.PrintBalance, on_failure = self.failRequest)
 
-
-            # self.ids.nfc_b.text = "OK"
-            # if self.pay_type == PayType.PAYMENT:
-            #     self.ids.nfc_inf.text = "支払いが完了しました"
-            #     self.source = "./img/pay.png"
-            # if self.pay_type == PayType.CHARGE:
-            #     self.ids.nfc_inf.text = "チャージが完了しました"
-            #     self.source = "./img/charge.png"
         else:
             print("Error: The payment could not be made due to insufficient balance.")
             self.pfailRequest(req, result)
 
     def PrintBalance(self, req, result):
-        self.ids.nfc_b.text = "OK"
+        # self.ids.nfc_b.text = "OK"
         if self.pay_type == PayType.PAYMENT:
-            self.ids.nfc_inf.text = "支払いが完了しました 残高:" + str(result)
+            self.ids.suc_inf.text = "支払いが完了しました 残高:" + str(result)
+            self.parent.current = "suc_sc"
             self.source = "./img/pay.png"
         if self.pay_type == PayType.CHARGE:
-            self.ids.nfc_inf.text = "チャージが完了しました 残高:" + str(result)
+            self.ids.suc_inf.text = "チャージが完了しました 残高:" + str(result)
+            self.parent.current = "suc_sc"
             self.source = "./img/charge.png"
 
 
     def pfailRequest(self, req, result):
         erurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
-        erreq = UrlRequest(erurl, on_success = self.PrintpError, on_failure = self.failRequest)
+        erreq = UrlRequest(erurl, on_success = self.PrintpError, on_failure = self.failRequest)  
 
     def PrintpError(self, req, result):
-        
-        self.ids.nfc_inf.text = "残高が足りません 残高:" + str(result)
-        self.ids.nfc_b.text = "戻る"
+        self.ids.fail_inf.text = "残高が足りません 残高:" + str(result)
+        self.parent.current = "fail_sc"
         self.source = "./img/error.png"
-
         print(result)
         print("Error: Http communication was not established.")   
 
 
-
     def failRequest(self, req, result):
-        self.ids.nfc_inf.text = "エラーが発生しました．"
-        self.ids.nfc_b.text = "戻る"
+        self.ids.fail_inf.text = "エラーが発生しました．"
+        self.parent.current = "fail_sc"
+        # self.ids.nfc_b.text = "戻る"
         self.source = "./img/error.png"
 
         print(result)
         print("Error: Http communication was not established.")
+
+class SuccessScreen(Screen):
+    def on_leave(self):
+        self.cparent.current = "nfc_sc"
+
+    def pressCancelBtn(self):
+        self.nfc.cancel_flag = True
+
+        if self.pay_type == PayType.PAYMENT:
+            self.parent.current = 's_item'
+        elif self.pay_type == PayType.CHARGE:
+            self.parent.current = 's_charge'
+
+class FailScreen(Screen):
+    def on_leave(self):
+        self.cparent.current = "nfc_sc"
+
+    def pressCancelBtn(self):
+        self.nfc.cancel_flag = True
+
+        if self.pay_type == PayType.PAYMENT:
+            self.parent.current = 's_item'
+        elif self.pay_type == PayType.CHARGE:
+            self.parent.current = 's_charge'
+    
+    def pressChargeBtn(self):
+        self.parent.current = "s_charge"
 
 
 class StoreWindow(Screen):
