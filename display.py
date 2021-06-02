@@ -155,6 +155,8 @@ class ItemSelectingScreen(Screen):
         self.item_list = []
         self.cart_list = {}
         self.cart_flag = 0
+        # cw = CustomerWindow()
+        # cw.updateActiveBtn(1)
 
         url = DatabaseInfo.HTTP + "/product/" + str(PayInfo.get_storeID())
         req = UrlRequest(url, on_success=self.updateItemWidget)
@@ -235,6 +237,10 @@ class ItemSelectingScreen(Screen):
 class ChargeSelectingScreen(Screen):
     price_property = StringProperty('0')
 
+    # def on_enter(self):
+    #     cw = CustomerWindow()
+    #     cw.updateActiveBtn(2)
+
     def on_leave(self):
         self.price_property = '0'
 
@@ -258,6 +264,8 @@ class SignupScreen(Screen):
 
     def on_enter(self):
         self.pay_type = PayInfo.get_payType()
+        # cw = CustomerWindow()
+        # cw.updateActiveBtn(3)
 
         self.nfc = NfcReader()
         self.nfc.setDaemon(True)
@@ -290,8 +298,6 @@ class SignupScreen(Screen):
         self.ids.sign_img.source = self.source
 
 class NfcScreen(Screen):
-    source = StringProperty("./img/nfc_touch.gif")
-
     def on_enter(self):
         self.pay_type = PayInfo.get_payType()
 
@@ -305,10 +311,8 @@ class NfcScreen(Screen):
 
     def on_leave(self):
         self.nfc.cancel_flag = True
-        PayInfo.clearInfo()
         self.ids.nfc_inf.text = "学生証をリーダにタッチしてください"
         self.ids.nfc_b.text = "取消"
-        self.source = "./img/nfc_touch.gif"
 
         
     def pressCancelBtn(self):
@@ -331,7 +335,7 @@ class NfcScreen(Screen):
                 elif self.pay_type == PayType.CHARGE:
                     url += "/charge"
                     self.rb = json.dumps(PayInfo.get_DictChargeInfo())
-                    
+                
                 req = UrlRequest(url, on_success=self.successRequest, on_failure=self.failRequest, req_body=self.rb, req_headers=DatabaseInfo.HEADER)
                 break
                 
@@ -340,65 +344,74 @@ class NfcScreen(Screen):
     
     def successRequest(self, req, result):
         if result:
-            scurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
-            screq = UrlRequest(scurl, on_success = self.PrintBalance, on_failure = self.failRequest)
-
+            self.parent.current = "s_suc"
         else:
             print("Error: The payment could not be made due to insufficient balance.")
             self.pfailRequest(req, result)
 
-    def PrintBalance(self, req, result):
-        # self.ids.nfc_b.text = "OK"
-        if self.pay_type == PayType.PAYMENT:
-            self.ids.suc_inf.text = "支払いが完了しました 残高:" + str(result)
-            self.parent.current = "suc_sc"
-            self.source = "./img/pay.png"
-        if self.pay_type == PayType.CHARGE:
-            self.ids.suc_inf.text = "チャージが完了しました 残高:" + str(result)
-            self.parent.current = "suc_sc"
-            self.source = "./img/charge.png"
-
-
     def pfailRequest(self, req, result):
-        erurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
-        erreq = UrlRequest(erurl, on_success = self.PrintpError, on_failure = self.failRequest)  
-
-    def PrintpError(self, req, result):
-        self.ids.fail_inf.text = "残高が足りません 残高:" + str(result)
-        self.parent.current = "fail_sc"
-        self.source = "./img/error.png"
-        print(result)
-        print("Error: Http communication was not established.")   
-
+        self.parent.current = "s_bfail"
 
     def failRequest(self, req, result):
-        self.ids.fail_inf.text = "エラーが発生しました．"
-        self.parent.current = "fail_sc"
-        # self.ids.nfc_b.text = "戻る"
-        self.source = "./img/error.png"
+        self.parent.current = "s_fail"
 
         print(result)
         print("Error: Http communication was not established.")
 
 class SuccessScreen(Screen):
+    source = StringProperty()
+
+    def on_enter(self):
+        self.pay_type = PayInfo.get_payType()
+        scurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
+        screq = UrlRequest(scurl, on_success = self.printBalance, on_failure = self.failRequest)
+
     def on_leave(self):
-        self.cparent.current = "nfc_sc"
+        PayInfo.clearInfo()
+    
+    def printBalance(self, req, result):
+        if self.pay_type == PayType.PAYMENT:
+            self.ids.suc_inf.text = "支払いが完了しました 残高:" + str(result)
+            self.source = "./img/pay.png"
+        if self.pay_type == PayType.CHARGE:
+            self.ids.suc_inf.text = "チャージが完了しました 残高:" + str(result)            
+            self.source = "./img/charge.png"
 
     def pressCancelBtn(self):
-        self.nfc.cancel_flag = True
+        if self.pay_type == PayType.PAYMENT:
+            self.parent.current = 's_item'
+        elif self.pay_type == PayType.CHARGE:
+            self.parent.current = 's_charge'
+    
+    def failRequest(self, req, result):
+        self.parent.current = "s_fail"
+        print(result)
+        print("Error: Http communication was not established.")
 
+class FailScreen(Screen):
+    def on_enter(self):
+        self.pay_type = PayInfo.get_payType()
+    
+    def on_leave(self):
+        PayInfo.clearInfo()
+    
+    def pressCancelBtn(self):
         if self.pay_type == PayType.PAYMENT:
             self.parent.current = 's_item'
         elif self.pay_type == PayType.CHARGE:
             self.parent.current = 's_charge'
 
-class FailScreen(Screen):
+
+class BalanceFailScreen(Screen):
+    def on_enter(self): 
+        self.pay_type = PayInfo.get_payType()
+        erurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
+        erreq = UrlRequest(erurl, on_success = self.printpError, on_failure = self.failRequest)
+
     def on_leave(self):
-        self.cparent.current = "nfc_sc"
+        PayInfo.clearInfo()
 
     def pressCancelBtn(self):
-        self.nfc.cancel_flag = True
-
         if self.pay_type == PayType.PAYMENT:
             self.parent.current = 's_item'
         elif self.pay_type == PayType.CHARGE:
@@ -406,6 +419,18 @@ class FailScreen(Screen):
     
     def pressChargeBtn(self):
         self.parent.current = "s_charge"
+        # cw = CustomerWindow()
+        # cw.updateActiveBtn(2)
+
+    def printpError(self, req, result):
+        self.ids.bfail_inf.text = "残高が足りません 残高:" + str(result)
+        print(result)
+        print("Error: Http communication was not established.") 
+
+    def failRequest(self, req, result):
+        self.parent.current = "s_fail"
+        print(result)
+        print("Error: Http communication was not established.")
 
 
 class StoreWindow(Screen):

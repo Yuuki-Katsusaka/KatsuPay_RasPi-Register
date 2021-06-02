@@ -116,6 +116,12 @@ WindowManager:
                 name: 's_signup'
             NfcScreen:
                 name: 's_nfc'
+            SuccessScreen:
+                name: 's_suc'
+            FailScreen:
+                name: 's_fail'
+            BalanceFailScreen:
+                name: 's_bfail'
         BoxLayout:
             orientation: 'vertical'
             size_hint_x: 0.15
@@ -302,7 +308,6 @@ WindowManager:
                 # allow_strech: True
 
 <NfcScreen>:
-    name: "nfc_sc"
     BoxLayout:
         orientation: 'vertical'
         canvas.before:
@@ -319,7 +324,7 @@ WindowManager:
         Image:
             id: nfc_img
             size_hint_y: 0.5
-            source: root.source
+            source: "./img/nfc_touch.gif"
             anim_delay: 1
             allow_strech: True
         AnchorLayout:
@@ -334,7 +339,6 @@ WindowManager:
                 on_release: root.pressCancelBtn()
 
 <SuccessScreen>:
-    name: "suc_sc"
     BoxLayout:
         orientation: 'vertical'
         canvas.before:
@@ -364,9 +368,7 @@ WindowManager:
                 text: 'OK'
                 on_release: root.pressCancelBtn()
 
-
 <FailScreen>:
-    name: "fail_sc"
     BoxLayout:
         orientation: 'vertical'
         canvas.before:
@@ -379,10 +381,40 @@ WindowManager:
         InfoLabel:
             id: fail_inf
             size_hint_y: 0.1
+            text: "エラーが発生しました"
         Image:
             id: nfc_img
             size_hint_y: 0.5
-            source: root.source
+            source: "./img/error.png"
+            anim_delay: 1
+            allow_strech: True
+        AnchorLayout:
+            id: anchor
+            size_hint_y: 0.4
+            anchor_x: 'center'
+            anchor_y: 'center'  
+            SelectButton:
+                id: fail_b
+                size_hint: 0.5,0.5
+                text: '戻る'
+                on_release: root.pressCancelBtn()
+
+<BalanceFailScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        InfoLabel:
+            id: bfail_inf
+            size_hint_y: 0.1
+        Image:
+            id: nfc_img
+            size_hint_y: 0.5
+            source: "./img/error.png"
             anim_delay: 1
             allow_strech: True
         AnchorLayout:
@@ -391,7 +423,7 @@ WindowManager:
             anchor_x: 'center'
             anchor_y: 'center'
             BoxLayout:
-                orientation: "vertical"   
+                orientation: "horizontal"   
                 SelectButton:
                     id: fail_b
                     size_hint: 0.5,0.5
@@ -401,7 +433,6 @@ WindowManager:
                     size_hint: 0.5,0.5
                     text: "チャージ"
                     on_release: root.pressChargeBtn()
-
 
 <StoreWindow>:
     name: 'store'
