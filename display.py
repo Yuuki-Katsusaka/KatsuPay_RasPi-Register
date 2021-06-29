@@ -1,3 +1,4 @@
+from logging import FATAL
 import sys
 from threading import Thread
 import json
@@ -150,11 +151,18 @@ class CustomerWindow(Screen):
 
 class ItemSelectingScreen(Screen):
     price_property = StringProperty('0')
+    cart_flag = 0
 
     def on_enter(self):
-        self.item_list = []
-        self.cart_list = {}
-        self.cart_flag = 0
+        if PayInfo.get_lackBalanceFlag() == True:
+            PayInfo.set_lackBalanceFlag(False)
+            self.updateCartWidget()
+            self.item_list = []
+        elif PayInfo.get_lackBalanceFlag() == False:
+            self.item_list = []
+            self.cart_list = {}
+            self.cart_flag = 0
+            self.price_property = '0'
         # cw = CustomerWindow()
         # cw.updateActiveBtn(1)
 
@@ -162,7 +170,8 @@ class ItemSelectingScreen(Screen):
         req = UrlRequest(url, on_success=self.updateItemWidget)
 
     def on_leave(self):
-        self.price_property = '0'
+        # PayInfo.set_cartFlag(self.cart_flag)
+        # self.price_property = '0'
 
         self.ids['items'].clear_widgets()
         self.ids['cart'].clear_widgets()
@@ -203,7 +212,7 @@ class ItemSelectingScreen(Screen):
                     cart_layout.add_widget(cart_lbl)
                     cart_layout.add_widget(num_lbl)
                     self.ids['cart'].add_widget(cart_layout)
-    
+            
     def pressEnterBtn(self):
         if self.cart_flag > 0:
             product_list = []
@@ -250,7 +259,7 @@ class ChargeSelectingScreen(Screen):
     def pressEnterBtn(self):
         if not self.price_property == '0':
             PayInfo.set_payType(PayType.CHARGE)
-            PayInfo.set_payVal(int(self.price_property))
+            PayInfo.set_chargeVal(int(self.price_property))
             self.parent.transition = FallOutTransition()
             self.parent.current = 's_nfc'
         
@@ -366,8 +375,11 @@ class SuccessScreen(Screen):
         scurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
         screq = UrlRequest(scurl, on_success = self.printBalance, on_failure = self.failRequest)
 
-    def on_leave(self):
-        PayInfo.clearInfo()
+    def on_leave(self):        
+        if self.pay_type == PayType.PAYMENT and PayInfo.get_lackBalanceFlag() == False:
+            PayInfo.clearInfo()
+        elif (self.pay_type == PayType.CHARGE) or (self.pay_type == PayType.PAYMENT and PayInfo.get_lackBalanceFlag() == True):
+            PayInfo.cleareChargeVal()
     
     def printBalance(self, req, result):
         if self.pay_type == PayType.PAYMENT:
@@ -378,9 +390,9 @@ class SuccessScreen(Screen):
             self.source = "./img/charge.png"
 
     def pressCancelBtn(self):
-        if self.pay_type == PayType.PAYMENT:
+        if (self.pay_type == PayType.PAYMENT) or (self.pay_type == PayType.CHARGE and PayInfo.get_lackBalanceFlag() == True):
             self.parent.current = 's_item'
-        elif self.pay_type == PayType.CHARGE:
+        elif self.pay_type == PayType.CHARGE and PayInfo.get_lackBalanceFlag() == False:
             self.parent.current = 's_charge'
     
     def failRequest(self, req, result):
@@ -404,12 +416,13 @@ class FailScreen(Screen):
 
 class BalanceFailScreen(Screen):
     def on_enter(self): 
+        PayInfo.set_lackBalanceFlag(True)
         self.pay_type = PayInfo.get_payType()
         erurl = DatabaseInfo.HTTP + "/account/balance/" + str(PayInfo.get_studentID())
         erreq = UrlRequest(erurl, on_success = self.printpError, on_failure = self.failRequest)
 
-    def on_leave(self):
-        PayInfo.clearInfo()
+    # def on_leave(self):
+    #     PayInfo.clearInfo()
 
     def pressCancelBtn(self):
         if self.pay_type == PayType.PAYMENT:
