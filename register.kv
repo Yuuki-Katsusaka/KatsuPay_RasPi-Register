@@ -118,10 +118,13 @@ WindowManager:
                 name: 's_nfc'
             SuccessScreen:
                 name: 's_suc'
+            ChargeSuccessScreen:
+                name: 'c_s_suc'
             FailScreen:
                 name: 's_fail'
             BalanceFailScreen:
                 name: 's_bfail'
+
         BoxLayout:
             orientation: 'vertical'
             size_hint_x: 0.15
@@ -367,6 +370,41 @@ WindowManager:
                 size_hint: 0.5,0.5
                 text: 'OK'
                 on_release: root.pressCancelBtn()
+
+<ChargeSuccessScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: .6, 1, .6, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        InfoLabel:
+            id: suc_inf
+            size_hint_y: 0.1
+        Image:
+            id: nfc_img
+            size_hint_y: 0.5
+            source: root.source
+            anim_delay: 1
+            allow_strech: True
+        AnchorLayout:
+            id: anchor
+            size_hint_y: 0.4
+            anchor_x: 'center'
+            anchor_y: 'center'
+            BoxLayout:
+                orientation: "horizontal"   
+                SelectButton:
+                    size_hint: 0.5,0.5
+                    text: '商品選択画面へ'
+                    on_release: root.pressItemBtn()
+                SelectButton:
+                    size_hint: 0.5,0.5
+                    text: "チャージ画面へ"
+                    on_release: root.pressChargeBtn()
 
 <FailScreen>:
     BoxLayout:
